@@ -3,12 +3,12 @@
 // These values are meant to be public/client-side — Firestore security rules are what
 // actually keep your data private, not secrecy of these keys.
 const realConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyA_leHDLfTqGZ3O-4uF3ZyI45bCWjXLC4g",
+  authDomain: "skyesite-70e06.firebaseapp.com",
+  projectId: "skyesite-70e06",
+  storageBucket: "skyesite-70e06.firebasestorage.app",
+  messagingSenderId: "642041699159",
+  appId: "1:642041699159:web:399342ce828c4274823c12",
 };
 
 // When the site is opened from localhost (local dev/testing), talk to local Firebase
