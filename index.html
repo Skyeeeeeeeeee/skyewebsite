@@ -115,7 +115,7 @@
       </div>
     </div>
 
-    <div class="grid" id="list-memories"></div>
+    <div class="timeline" id="list-memories"></div>
     <div class="empty" id="empty-memories">
       <div class="empty-icon">✦</div>
       <p>No memories yet</p>
@@ -162,6 +162,14 @@
       <button type="submit" class="btn-solid">Add Link</button>
     </form>
 
+    <div class="toolbar-row">
+      <div class="size-toggle" id="linksSizeToggle" role="group" aria-label="Link card size">
+        <button type="button" class="size-btn" data-size="small">Small</button>
+        <button type="button" class="size-btn" data-size="medium">Medium</button>
+        <button type="button" class="size-btn" data-size="large">Large</button>
+      </div>
+    </div>
+
     <div class="grid links-grid" id="list-links"></div>
     <div class="empty" id="empty-links">
       <div class="empty-icon">✦</div>
@@ -188,7 +196,7 @@
       </label>
     </div>
 
-    <div class="decor-toolbar">
+    <div class="toolbar-row">
       <div class="size-toggle" id="decorSizeToggle" role="group" aria-label="Photo size">
         <button type="button" class="size-btn" data-size="small">Small</button>
         <button type="button" class="size-btn" data-size="medium">Medium</button>

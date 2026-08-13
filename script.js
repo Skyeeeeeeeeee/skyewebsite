@@ -28,6 +28,7 @@
     links: load('sw_links', []),
     decor: load('sw_decor', []),
     decorSize: load('sw_decorSize', 'medium'),
+    linksSize: load('sw_linksSize', 'medium'),
   };
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -120,7 +121,7 @@
   }
 
   /* ---------------- generic composer (events / memories / wishlist) ---------------- */
-  function wireComposer(kind, storeKey, { hasLink = false } = {}) {
+  function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
     const openBtn = document.querySelector(`[data-open="${kind}"]`);
     const composer = document.getElementById(`composer-${kind}`);
     const cancelBtn = document.querySelector(`[data-cancel="${kind}"]`);
@@ -128,6 +129,7 @@
     const titleInput = document.getElementById(`${kind}-title`);
     const descInput = document.getElementById(`${kind}-desc`);
     const linkInput = hasLink ? document.getElementById(`${kind}-link`) : null;
+    const doRender = render || (() => renderList(kind, storeKey));
 
     function closeComposer() {
       composer.classList.remove('open');
@@ -170,7 +172,7 @@
       }
       flashSaved();
       closeComposer();
-      renderList(kind, storeKey);
+      doRender();
     }
 
     saveBtn.addEventListener('click', commit);
@@ -182,6 +184,48 @@
     });
   }
 
+  // builds the shared title/link/desc/meta card used by Events, Wishlist and Memories
+  function buildEntryCard(item, extraClass, onDelete) {
+    const card = document.createElement('div');
+    card.className = extraClass ? `card ${extraClass}` : 'card';
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    const h3 = document.createElement('h3');
+    h3.textContent = item.title;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-delete';
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    delBtn.addEventListener('click', () => {
+      card.classList.add('removing');
+      setTimeout(onDelete, 260);
+    });
+    top.append(h3, delBtn);
+
+    if (item.link) {
+      const openLink = document.createElement('a');
+      openLink.className = 'card-link';
+      openLink.href = item.link;
+      openLink.target = '_blank';
+      openLink.rel = 'noopener noreferrer';
+      openLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        new URL(item.link).hostname.replace(/^www\./, '');
+      card.append(top, openLink);
+    } else {
+      card.append(top);
+    }
+
+    const p = document.createElement('p');
+    p.textContent = item.desc || '';
+    if (item.desc) card.append(p);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = fmtDate(item.createdAt);
+    card.append(meta);
+    return card;
+  }
+
   function renderList(kind, storeKey) {
     const listEl = document.getElementById(`list-${kind}`);
     const emptyEl = document.getElementById(`empty-${kind}`);
@@ -190,57 +234,72 @@
     emptyEl.classList.toggle('show', items.length === 0);
 
     items.forEach((item, i) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-      const h3 = document.createElement('h3');
-      h3.textContent = item.title;
-      const delBtn = document.createElement('button');
-      delBtn.className = 'card-delete';
-      delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-      delBtn.addEventListener('click', () => {
-        card.classList.add('removing');
-        setTimeout(() => {
-          state[storeKey] = state[storeKey].filter(x => x.id !== item.id);
-          save('sw_' + storeKey, state[storeKey]);
-          renderList(kind, storeKey);
-        }, 260);
+      const card = buildEntryCard(item, '', () => {
+        state[storeKey] = state[storeKey].filter(x => x.id !== item.id);
+        save('sw_' + storeKey, state[storeKey]);
+        renderList(kind, storeKey);
       });
-      top.append(h3, delBtn);
-
-      if (item.link) {
-        const openLink = document.createElement('a');
-        openLink.className = 'card-link';
-        openLink.href = item.link;
-        openLink.target = '_blank';
-        openLink.rel = 'noopener noreferrer';
-        openLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          new URL(item.link).hostname.replace(/^www\./, '');
-        card.append(top, openLink);
-      } else {
-        card.append(top);
-      }
-
-      const p = document.createElement('p');
-      p.textContent = item.desc || '';
-      if (item.desc) card.append(p);
-
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = fmtDate(item.createdAt);
-      card.append(meta);
+      card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
       listEl.append(card);
     });
   }
 
+  // memories get a fun scrapbook timeline instead of a flat grid, grouped by month and sorted newest-first
+  function renderMemories() {
+    const listEl = document.getElementById('list-memories');
+    const emptyEl = document.getElementById('empty-memories');
+    const items = [...state.memories].sort((a, b) => b.createdAt - a.createdAt);
+    listEl.innerHTML = '';
+    emptyEl.classList.toggle('show', items.length === 0);
+
+    const groups = new Map();
+    items.forEach(item => {
+      const label = new Date(item.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(item);
+    });
+
+    let i = 0;
+    groups.forEach((groupItems, label) => {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'timeline-group';
+
+      const marker = document.createElement('div');
+      marker.className = 'timeline-marker';
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'timeline-group-label';
+      labelEl.textContent = label;
+
+      const entriesEl = document.createElement('div');
+      entriesEl.className = 'timeline-entries';
+
+      groupItems.forEach(item => {
+        const tilt = (i % 2 === 0 ? -1 : 1) * (1.1 + (i % 3) * 0.4);
+        const wrap = document.createElement('div');
+        wrap.className = 'tilt-wrap';
+        wrap.style.setProperty('--tilt', tilt + 'deg');
+        const card = buildEntryCard(item, 'memory-card', () => {
+          state.memories = state.memories.filter(x => x.id !== item.id);
+          save('sw_memories', state.memories);
+          renderMemories();
+        });
+        card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
+        wrap.append(card);
+        entriesEl.append(wrap);
+        i++;
+      });
+
+      groupEl.append(marker, labelEl, entriesEl);
+      listEl.append(groupEl);
+    });
+  }
+
   wireComposer('events', 'events');
-  wireComposer('memories', 'memories');
+  wireComposer('memories', 'memories', { render: renderMemories });
   wireComposer('wishlist', 'wishlist', { hasLink: true });
   renderList('events', 'events');
-  renderList('memories', 'memories');
+  renderMemories();
   renderList('wishlist', 'wishlist');
 
   /* ---------------- links (shared card builder, used by Links + Decor) ---------------- */
@@ -468,18 +527,18 @@
     decorPhotoInput.value = '';
   });
 
-  const decorGrid = document.getElementById('list-decor');
-  const sizeButtons = Array.from(document.querySelectorAll('.size-btn'));
-  function applyDecorSize(size) {
-    state.decorSize = size;
-    decorGrid.dataset.size = size;
-    sizeButtons.forEach(b => b.classList.toggle('active', b.dataset.size === size));
-    save('sw_decorSize', size);
+  function wireSizeToggle(toggleId, targetEl, storeKeyName, initial) {
+    const buttons = Array.from(document.querySelectorAll(`#${toggleId} .size-btn`));
+    function apply(size) {
+      targetEl.dataset.size = size;
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.size === size));
+      save(storeKeyName, size);
+    }
+    buttons.forEach(btn => btn.addEventListener('click', () => apply(btn.dataset.size)));
+    apply(initial);
   }
-  sizeButtons.forEach(btn => {
-    btn.addEventListener('click', () => applyDecorSize(btn.dataset.size));
-  });
-  applyDecorSize(state.decorSize);
+  wireSizeToggle('decorSizeToggle', document.getElementById('list-decor'), 'sw_decorSize', state.decorSize);
+  wireSizeToggle('linksSizeToggle', document.getElementById('list-links'), 'sw_linksSize', state.linksSize);
 
   renderDecor();
 })();
