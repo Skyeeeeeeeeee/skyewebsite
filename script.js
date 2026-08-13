@@ -27,6 +27,7 @@
     wishlist: load('sw_wishlist', []),
     links: load('sw_links', []),
     decor: load('sw_decor', []),
+    decorSize: load('sw_decorSize', 'medium'),
   };
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -466,6 +467,19 @@
     }
     decorPhotoInput.value = '';
   });
+
+  const decorGrid = document.getElementById('list-decor');
+  const sizeButtons = Array.from(document.querySelectorAll('.size-btn'));
+  function applyDecorSize(size) {
+    state.decorSize = size;
+    decorGrid.dataset.size = size;
+    sizeButtons.forEach(b => b.classList.toggle('active', b.dataset.size === size));
+    save('sw_decorSize', size);
+  }
+  sizeButtons.forEach(btn => {
+    btn.addEventListener('click', () => applyDecorSize(btn.dataset.size));
+  });
+  applyDecorSize(state.decorSize);
 
   renderDecor();
 })();

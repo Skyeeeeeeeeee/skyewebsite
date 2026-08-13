@@ -582,21 +582,62 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   transform: translateY(-1px);
 }
 
-.masonry {
-  column-width: 250px;
-  column-gap: 16px;
+.decor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
 }
+.size-toggle {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.size-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.size-btn:hover { color: var(--text); }
+.size-btn.active {
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(var(--accent-a-rgb), 0.35);
+}
+
+.masonry {
+  column-width: 240px;
+  column-gap: 14px;
+  transition: column-width 0.35s ease, column-gap 0.35s ease;
+}
+.masonry[data-size="small"] { column-width: 160px; column-gap: 10px; }
+.masonry[data-size="medium"] { column-width: 240px; column-gap: 14px; }
+.masonry[data-size="large"] { column-width: 360px; column-gap: 20px; }
 .masonry .card {
   break-inside: avoid;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   width: 100%;
   display: inline-block;
   vertical-align: top;
 }
+.masonry[data-size="small"] .card { margin-bottom: 10px; }
+.masonry[data-size="large"] .card { margin-bottom: 20px; }
+
 .photo-card {
   padding: 0;
   overflow: hidden;
   line-height: 0;
+  border-color: transparent;
+  background: transparent;
 }
 .photo-card img {
   width: 100%;
@@ -605,7 +646,8 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   border-radius: inherit;
   transition: transform 0.4s ease;
 }
-.photo-card:hover img { transform: scale(1.03); }
+.photo-card:hover { box-shadow: 0 20px 45px rgba(0,0,0,0.45); }
+.photo-card:hover img { transform: scale(1.035); }
 .photo-card .card-delete { position: absolute; top: 10px; right: 10px; background: rgba(27,26,25,0.6); backdrop-filter: blur(6px); }
 
 /* ---------------- empty states ---------------- */
