@@ -364,6 +364,18 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   aspect-ratio: 245 / 200;
   pointer-events: none;
 }
+.scene-clock {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font: 700 15px "Courier New", monospace;
+  letter-spacing: 1px;
+  color: rgba(236, 229, 219, 0.2);
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+}
 .pixel-scene {
   display: block;
   width: 100%;

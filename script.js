@@ -146,28 +146,11 @@ const SCENE_COLORS = {
   jukeboxPanelB: '#7a3b32',
   jukeboxPanelC: '#5a8a7a',
   note: '#e8d9c4',
-  clockGlow: '236,229,219',
 };
 
 function scenePx(x, y, w, h, color) {
   sceneCtx.fillStyle = color;
   sceneCtx.fillRect(Math.round(x), Math.round(y), w, h);
-}
-
-function drawSceneClock() {
-  const now = new Date();
-  let hours = now.getHours() % 12;
-  if (hours === 0) hours = 12;
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const colon = now.getSeconds() % 2 === 0 ? ':' : ' ';
-
-  sceneCtx.save();
-  sceneCtx.font = '700 76px "Courier New", monospace';
-  sceneCtx.textAlign = 'center';
-  sceneCtx.textBaseline = 'middle';
-  sceneCtx.fillStyle = `rgba(${SCENE_COLORS.clockGlow},0.055)`;
-  sceneCtx.fillText(`${hours}${colon}${minutes}`, SCENE_W / 2, SCENE_H / 2);
-  sceneCtx.restore();
 }
 
 function drawSceneRoom(t) {
@@ -340,6 +323,18 @@ let sceneRunning = false;
 let sceneRafId = null;
 let sceneLastT = null;
 
+const sceneClockEl = document.getElementById('sceneClock');
+let sceneClockIntervalId = null;
+
+function updateSceneClockEl() {
+  const now = new Date();
+  let hours = now.getHours() % 12;
+  if (hours === 0) hours = 12;
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
+  sceneClockEl.textContent = `${hours}:${minutes}:${seconds}`;
+}
+
 function sceneFrame(t) {
   if (!sceneRunning) return;
   if (sceneLastT == null) sceneLastT = t;
@@ -352,7 +347,6 @@ function sceneFrame(t) {
 
   sceneCtx.clearRect(0, 0, SCENE_W, SCENE_H);
   drawSceneRoom(t);
-  drawSceneClock();
   drawSceneCounter(t);
   drawSceneTable(95);
   drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' });
@@ -371,10 +365,13 @@ function startPixelScene() {
   sceneRunning = true;
   sceneLastT = null;
   sceneRafId = requestAnimationFrame(sceneFrame);
+  updateSceneClockEl();
+  sceneClockIntervalId = setInterval(updateSceneClockEl, 1000);
 }
 function stopPixelScene() {
   sceneRunning = false;
   if (sceneRafId) cancelAnimationFrame(sceneRafId);
+  if (sceneClockIntervalId) clearInterval(sceneClockIntervalId);
 }
 
 /* ---------------- tabs ---------------- */
