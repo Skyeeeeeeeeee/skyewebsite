@@ -323,16 +323,21 @@ let sceneRunning = false;
 let sceneRafId = null;
 let sceneLastT = null;
 
-const sceneClockEl = document.getElementById('sceneClock');
+const sceneClockTimeEl = document.getElementById('sceneClockTime');
+const sceneClockSecEl = document.getElementById('sceneClockSec');
+const sceneClockAmPmEl = document.getElementById('sceneClockAmPm');
 let sceneClockIntervalId = null;
 
 function updateSceneClockEl() {
   const now = new Date();
-  let hours = now.getHours() % 12;
+  const rawHours = now.getHours();
+  let hours = rawHours % 12;
   if (hours === 0) hours = 12;
   const minutes = now.getMinutes().toString().padStart(2, '0');
   const seconds = now.getSeconds().toString().padStart(2, '0');
-  sceneClockEl.textContent = `${hours}:${minutes}:${seconds}`;
+  sceneClockTimeEl.textContent = `${hours}:${minutes}`;
+  sceneClockSecEl.textContent = `:${seconds}`;
+  sceneClockAmPmEl.textContent = rawHours < 12 ? 'AM' : 'PM';
 }
 
 function sceneFrame(t) {

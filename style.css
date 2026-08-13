@@ -369,12 +369,25 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font: 700 15px "Courier New", monospace;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
   letter-spacing: 1px;
   color: rgba(236, 229, 219, 0.2);
   pointer-events: none;
   z-index: 1;
   white-space: nowrap;
+}
+.scene-clock-time {
+  font-size: 45px;
+}
+.scene-clock-sec {
+  font-size: 17px;
+}
+.scene-clock-ampm {
+  font-size: 15px;
 }
 .pixel-scene {
   display: block;
