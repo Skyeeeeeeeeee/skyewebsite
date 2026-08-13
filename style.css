@@ -62,6 +62,23 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   mix-blend-mode: overlay;
 }
 
+.corner-glasses {
+  position: fixed;
+  right: 18px;
+  bottom: 16px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  color: var(--text-faint);
+  opacity: 0.28;
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+.corner-glasses svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* ---------------- topbar ---------------- */
 .topbar {
   position: sticky;
@@ -85,10 +102,19 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   flex-shrink: 0;
 }
 .brand-mark {
-  width: 20px; height: 20px;
-  border-radius: 6px;
+  width: 24px; height: 24px;
+  border-radius: 7px;
   background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
   box-shadow: 0 0 18px rgba(var(--accent-a-rgb), 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.brand-mark svg {
+  width: 15px;
+  height: 15px;
 }
 .brand-name {
   font-weight: 600;
