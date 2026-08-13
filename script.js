@@ -330,6 +330,7 @@ function renderMemories() {
       wrap.style.setProperty('--tilt', tilt + 'deg');
       const card = buildEntryCard(item, 'memory-card', () => fsDeleteItem('memories', item.id));
       card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
+      card.append(buildMemoryThumb(item));
       wrap.append(card);
       entriesEl.append(wrap);
       i++;
@@ -338,6 +339,112 @@ function renderMemories() {
     groupEl.append(marker, labelEl, entriesEl);
     listEl.append(groupEl);
   });
+}
+
+/* ---------------- memory thumb: photo, emoji, or nothing, picked from a small corner popover ---------------- */
+const MEMORY_EMOJIS = ['🎉', '✈️', '🏖️', '🎂', '📷', '🎵', '❤️', '🍕', '🌟', '🎓', '🐾', '🌅', '🎄', '🥳'];
+let closeOpenMemoryPopover = null;
+
+function buildMemoryThumb(item) {
+  const wrap = document.createElement('div');
+  wrap.className = 'memory-thumb-wrap';
+
+  const thumb = document.createElement('button');
+  thumb.type = 'button';
+  thumb.className = 'memory-thumb' + (item.photo || item.emoji ? '' : ' is-empty');
+  thumb.setAttribute('aria-label', 'Add a photo or emoji to this memory');
+
+  if (item.photo) {
+    const img = document.createElement('img');
+    img.src = item.photo;
+    img.alt = '';
+    thumb.append(img);
+  } else if (item.emoji) {
+    thumb.textContent = item.emoji;
+  } else {
+    thumb.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  }
+
+  thumb.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (closeOpenMemoryPopover) {
+      const wasThisOne = wrap.dataset.open === 'true';
+      closeOpenMemoryPopover();
+      if (wasThisOne) return;
+    }
+    openMemoryPopover(wrap, item);
+  });
+
+  wrap.append(thumb);
+  return wrap;
+}
+
+function openMemoryPopover(wrap, item) {
+  const popover = document.createElement('div');
+  popover.className = 'memory-thumb-popover';
+
+  const grid = document.createElement('div');
+  grid.className = 'emoji-grid';
+  MEMORY_EMOJIS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = emoji;
+    btn.addEventListener('click', () => {
+      fsSetItem('memories', { ...item, emoji, photo: null });
+      close();
+    });
+    grid.append(btn);
+  });
+
+  const uploadLabel = document.createElement('label');
+  uploadLabel.className = 'popover-upload';
+  uploadLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4 7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 15.5V18a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Upload Photo';
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.hidden = true;
+  fileInput.addEventListener('click', e => e.stopPropagation());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file, 480, 0.75);
+      const ok = await fsSetItem('memories', { ...item, photo: dataUrl, emoji: null });
+      if (!ok) flashError('Could not save — too large or offline');
+    } catch {
+      flashError("Couldn't read that photo");
+    }
+    close();
+  });
+  uploadLabel.append(fileInput);
+
+  popover.append(grid, uploadLabel);
+
+  if (item.photo || item.emoji) {
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'popover-remove';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', () => {
+      fsSetItem('memories', { ...item, photo: null, emoji: null });
+      close();
+    });
+    popover.append(removeBtn);
+  }
+
+  popover.addEventListener('click', e => e.stopPropagation());
+  wrap.append(popover);
+  wrap.dataset.open = 'true';
+
+  function onOutsideClick() { close(); }
+  function close() {
+    popover.remove();
+    wrap.dataset.open = 'false';
+    document.removeEventListener('click', onOutsideClick);
+    if (closeOpenMemoryPopover === close) closeOpenMemoryPopover = null;
+  }
+  document.addEventListener('click', onOutsideClick);
+  closeOpenMemoryPopover = close;
 }
 
 wireComposer('events', 'events');
