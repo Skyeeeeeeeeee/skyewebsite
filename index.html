@@ -37,9 +37,17 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7.5-4.6-9.8-9.3C.6 7.7 2.4 4 6 4c2 0 3.4 1 4.5 2.6C11.6 5 13 4 15 4c3.6 0 5.4 3.7 3.8 7.2C16.5 15.9 12 20.5 12 20.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <span>Memories</span>
     </button>
+    <button class="tab" data-view="wishlist">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.3l2.55 5.4 5.85.85-4.2 4.15 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.2-4.15 5.85-.85 2.55-5.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Wishlist</span>
+    </button>
     <button class="tab" data-view="links">
       <svg viewBox="0 0 24 24" fill="none"><path d="M9.5 14.5 14.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11 6.5 12.4 5A4 4 0 1 1 18 10.6l-1.5 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13 17.5 11.6 19A4 4 0 1 1 6 13.4l1.5-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       <span>Links</span>
+    </button>
+    <button class="tab" data-view="decor">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M4.3 17.3 9 12.3l3.1 3.1L15 12l4.7 5.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <span>Decor</span>
     </button>
     <div class="tab-glow" id="tabGlow"></div>
   </nav>
@@ -116,6 +124,34 @@
     </div>
   </section>
 
+  <!-- WISHLIST -->
+  <section class="view" id="view-wishlist">
+    <div class="view-head">
+      <h1>Wishlist</h1>
+      <p>Things you want. Name it, link it if you've got one.</p>
+      <button class="new-btn" data-open="wishlist">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        New Wish
+      </button>
+    </div>
+
+    <div class="composer" id="composer-wishlist">
+      <input type="text" id="wishlist-title" placeholder="Item name" maxlength="80">
+      <input type="text" id="wishlist-link" placeholder="Link (optional)" maxlength="500">
+      <textarea id="wishlist-desc" placeholder="Any notes? Size, color, why you want it..." maxlength="600"></textarea>
+      <div class="composer-actions">
+        <button class="btn-ghost" data-cancel="wishlist">Cancel</button>
+        <button class="btn-solid" data-save="wishlist">Add to Wishlist</button>
+      </div>
+    </div>
+
+    <div class="grid" id="list-wishlist"></div>
+    <div class="empty" id="empty-wishlist">
+      <div class="empty-icon">✦</div>
+      <p>No wishes yet</p>
+    </div>
+  </section>
+
   <!-- LINKS -->
   <section class="view" id="view-links">
     <div class="view-head">
@@ -132,6 +168,32 @@
     <div class="empty" id="empty-links">
       <div class="empty-icon">✦</div>
       <p>No links yet</p>
+    </div>
+  </section>
+
+  <!-- ROOM DECOR -->
+  <section class="view" id="view-decor">
+    <div class="view-head">
+      <h1>Room Decor</h1>
+      <p>Build a moodboard. Save inspiration links or upload your own photos.</p>
+    </div>
+
+    <div class="decor-add">
+      <form class="link-add" id="decorLinkForm">
+        <input type="text" id="decorLinkInput" placeholder="Paste a URL, e.g. pinterest.com/..." autocomplete="off">
+        <button type="submit" class="btn-solid">Add Link</button>
+      </form>
+      <label class="upload-btn" for="decorPhotoInput">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4 7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 15.5V18a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Upload Photo
+        <input type="file" id="decorPhotoInput" accept="image/*" multiple hidden>
+      </label>
+    </div>
+
+    <div class="masonry" id="list-decor"></div>
+    <div class="empty" id="empty-decor">
+      <div class="empty-icon">✦</div>
+      <p>No decor saved yet</p>
     </div>
   </section>
 

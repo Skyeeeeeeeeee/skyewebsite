@@ -10,24 +10,37 @@
       return fallback;
     }
   };
-  const save = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+  // returns false (instead of throwing) when storage is full, so callers can roll back in-memory state
+  const save = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const state = {
     notes: load('sw_notes', ''),
     events: load('sw_events', []),
     memories: load('sw_memories', []),
+    wishlist: load('sw_wishlist', []),
     links: load('sw_links', []),
+    decor: load('sw_decor', []),
   };
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
   const saveIndicator = document.getElementById('saveIndicator');
   let saveTimer = null;
-  function flashSaved() {
+  function flashSaved(text = 'Saved', isError = false) {
+    saveIndicator.textContent = text;
+    saveIndicator.classList.toggle('error', isError);
     saveIndicator.classList.add('show');
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveIndicator.classList.remove('show'), 1200);
+    saveTimer = setTimeout(() => saveIndicator.classList.remove('show'), isError ? 2600 : 1200);
   }
+  const flashError = (text) => flashSaved(text, true);
 
   function fmtDate(ts) {
     const d = new Date(ts);
@@ -65,7 +78,7 @@
     if (active) positionGlow(active);
   });
 
-  const validViews = ['notes', 'events', 'memories', 'links'];
+  const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor'];
   const initialView = (location.hash || '').replace('#', '');
   activateTab(validViews.includes(initialView) ? initialView : 'notes', { skipHash: true });
   requestAnimationFrame(() => {
@@ -91,27 +104,43 @@
     }, 400);
   });
 
-  /* ---------------- generic composer (events / memories) ---------------- */
-  function wireComposer(kind, storeKey) {
+  /* ---------------- shared url helper ---------------- */
+  function normalizeUrl(raw) {
+    let v = raw.trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+    try {
+      const u = new URL(v);
+      if (!u.hostname.includes('.')) return null;
+      return u.href;
+    } catch {
+      return null;
+    }
+  }
+
+  /* ---------------- generic composer (events / memories / wishlist) ---------------- */
+  function wireComposer(kind, storeKey, { hasLink = false } = {}) {
     const openBtn = document.querySelector(`[data-open="${kind}"]`);
     const composer = document.getElementById(`composer-${kind}`);
     const cancelBtn = document.querySelector(`[data-cancel="${kind}"]`);
     const saveBtn = document.querySelector(`[data-save="${kind}"]`);
     const titleInput = document.getElementById(`${kind}-title`);
     const descInput = document.getElementById(`${kind}-desc`);
+    const linkInput = hasLink ? document.getElementById(`${kind}-link`) : null;
 
     function closeComposer() {
       composer.classList.remove('open');
       openBtn.classList.remove('is-open');
       titleInput.value = '';
       descInput.value = '';
+      if (linkInput) { linkInput.value = ''; linkInput.style.borderColor = ''; }
     }
 
     openBtn.addEventListener('click', () => {
       const isOpen = composer.classList.toggle('open');
       openBtn.classList.toggle('is-open', isOpen);
       if (isOpen) titleInput.focus();
-      else { titleInput.value = ''; descInput.value = ''; }
+      else closeComposer();
     });
 
     cancelBtn.addEventListener('click', closeComposer);
@@ -120,15 +149,31 @@
       const title = titleInput.value.trim();
       const desc = descInput.value.trim();
       if (!title) { titleInput.focus(); return; }
-      state[storeKey].unshift({ id: uid(), title, desc, createdAt: Date.now() });
-      save('sw_' + storeKey, state[storeKey]);
+
+      let link = null;
+      if (linkInput && linkInput.value.trim()) {
+        link = normalizeUrl(linkInput.value);
+        if (!link) {
+          linkInput.style.borderColor = 'rgba(226,114,91,0.6)';
+          linkInput.focus();
+          setTimeout(() => { linkInput.style.borderColor = ''; }, 900);
+          return;
+        }
+      }
+
+      state[storeKey].unshift({ id: uid(), title, desc, link, createdAt: Date.now() });
+      if (!save('sw_' + storeKey, state[storeKey])) {
+        state[storeKey].shift();
+        flashError('Storage full — remove something first');
+        return;
+      }
       flashSaved();
       closeComposer();
       renderList(kind, storeKey);
     }
 
     saveBtn.addEventListener('click', commit);
-    [titleInput, descInput].forEach(el => {
+    [titleInput, descInput, linkInput].filter(Boolean).forEach(el => {
       el.addEventListener('keydown', e => {
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
         if (e.key === 'Escape') closeComposer();
@@ -165,15 +210,26 @@
       });
       top.append(h3, delBtn);
 
+      if (item.link) {
+        const openLink = document.createElement('a');
+        openLink.className = 'card-link';
+        openLink.href = item.link;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          new URL(item.link).hostname.replace(/^www\./, '');
+        card.append(top, openLink);
+      } else {
+        card.append(top);
+      }
+
       const p = document.createElement('p');
       p.textContent = item.desc || '';
+      if (item.desc) card.append(p);
 
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.textContent = fmtDate(item.createdAt);
-
-      card.append(top);
-      if (item.desc) card.append(p);
       card.append(meta);
       listEl.append(card);
     });
@@ -181,21 +237,81 @@
 
   wireComposer('events', 'events');
   wireComposer('memories', 'memories');
+  wireComposer('wishlist', 'wishlist', { hasLink: true });
   renderList('events', 'events');
   renderList('memories', 'memories');
+  renderList('wishlist', 'wishlist');
 
-  /* ---------------- links ---------------- */
-  function normalizeUrl(raw) {
-    let v = raw.trim();
-    if (!v) return null;
-    if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
-    try {
-      const u = new URL(v);
-      if (!u.hostname.includes('.')) return null;
-      return u.href;
-    } catch {
-      return null;
-    }
+  /* ---------------- links (shared card builder, used by Links + Decor) ---------------- */
+
+  function buildLinkCard(item, i, onDelete) {
+    const card = document.createElement('div');
+    card.className = 'card link-card';
+    card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
+
+    const hit = document.createElement('a');
+    hit.className = 'link-open-hit';
+    hit.href = item.url;
+    hit.target = '_blank';
+    hit.rel = 'noopener noreferrer';
+    hit.setAttribute('aria-label', item.domain);
+
+    const thumb = document.createElement('div');
+    thumb.className = 'link-thumb';
+    const shimmer = document.createElement('div');
+    shimmer.className = 'shimmer';
+    const fallback = document.createElement('div');
+    fallback.className = 'link-fallback';
+    fallback.textContent = (item.domain || '?').charAt(0).toUpperCase();
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.src = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.url)}?w=500&h=310`;
+    let retries = 0;
+    img.addEventListener('load', () => {
+      // mshots returns a tiny placeholder while it generates the real shot; retry a few times
+      if (img.naturalWidth <= 1 && retries < 4) {
+        retries++;
+        setTimeout(() => { img.src = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.url)}?w=500&h=310&r=${retries}`; }, 1500);
+        return;
+      }
+      img.classList.add('loaded');
+      shimmer.remove();
+      fallback.remove();
+    });
+    img.addEventListener('error', () => { shimmer.remove(); img.remove(); });
+    thumb.append(shimmer, fallback, img);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-delete';
+    delBtn.style.zIndex = 2;
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    delBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.add('removing');
+      setTimeout(() => onDelete(), 260);
+    });
+
+    const body = document.createElement('div');
+    body.className = 'link-body';
+    const favicon = document.createElement('img');
+    favicon.className = 'link-favicon';
+    favicon.src = `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(item.domain)}`;
+    favicon.alt = '';
+    const info = document.createElement('div');
+    info.className = 'link-info';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'link-title';
+    titleEl.textContent = item.domain;
+    const domainEl = document.createElement('div');
+    domainEl.className = 'link-domain';
+    domainEl.textContent = item.url.replace(/^https?:\/\//, '');
+    info.append(titleEl, domainEl);
+    body.append(favicon, info);
+
+    card.append(hit, thumb, delBtn, body);
+    return card;
   }
 
   function renderLinks() {
@@ -206,76 +322,11 @@
     emptyEl.classList.toggle('show', items.length === 0);
 
     items.forEach((item, i) => {
-      const card = document.createElement('div');
-      card.className = 'card link-card';
-      card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
-
-      const hit = document.createElement('a');
-      hit.className = 'link-open-hit';
-      hit.href = item.url;
-      hit.target = '_blank';
-      hit.rel = 'noopener noreferrer';
-      hit.setAttribute('aria-label', item.domain);
-
-      const thumb = document.createElement('div');
-      thumb.className = 'link-thumb';
-      const shimmer = document.createElement('div');
-      shimmer.className = 'shimmer';
-      const fallback = document.createElement('div');
-      fallback.className = 'link-fallback';
-      fallback.textContent = (item.domain || '?').charAt(0).toUpperCase();
-      const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.referrerPolicy = 'no-referrer';
-      img.src = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.url)}?w=500&h=310`;
-      let retries = 0;
-      img.addEventListener('load', () => {
-        // mshots returns a tiny placeholder while it generates the real shot; retry a few times
-        if (img.naturalWidth <= 1 && retries < 4) {
-          retries++;
-          setTimeout(() => { img.src = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.url)}?w=500&h=310&r=${retries}`; }, 1500);
-          return;
-        }
-        img.classList.add('loaded');
-        shimmer.remove();
-        fallback.remove();
+      const card = buildLinkCard(item, i, () => {
+        state.links = state.links.filter(x => x.id !== item.id);
+        save('sw_links', state.links);
+        renderLinks();
       });
-      img.addEventListener('error', () => { shimmer.remove(); img.remove(); });
-      thumb.append(shimmer, fallback, img);
-
-      const delBtn = document.createElement('button');
-      delBtn.className = 'card-delete';
-      delBtn.style.zIndex = 2;
-      delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-      delBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        card.classList.add('removing');
-        setTimeout(() => {
-          state.links = state.links.filter(x => x.id !== item.id);
-          save('sw_links', state.links);
-          renderLinks();
-        }, 260);
-      });
-
-      const body = document.createElement('div');
-      body.className = 'link-body';
-      const favicon = document.createElement('img');
-      favicon.className = 'link-favicon';
-      favicon.src = `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(item.domain)}`;
-      favicon.alt = '';
-      const info = document.createElement('div');
-      info.className = 'link-info';
-      const titleEl = document.createElement('div');
-      titleEl.className = 'link-title';
-      titleEl.textContent = item.domain;
-      const domainEl = document.createElement('div');
-      domainEl.className = 'link-domain';
-      domainEl.textContent = item.url.replace(/^https?:\/\//, '');
-      info.append(titleEl, domainEl);
-      body.append(favicon, info);
-
-      card.append(hit, thumb, delBtn, body);
       listEl.append(card);
     });
   }
@@ -287,17 +338,134 @@
     const href = normalizeUrl(linkInput.value);
     if (!href) {
       linkInput.focus();
-      linkInput.style.borderColor = 'rgba(241,101,101,0.6)';
+      linkInput.style.borderColor = 'rgba(226,114,91,0.6)';
       setTimeout(() => { linkInput.style.borderColor = ''; }, 900);
       return;
     }
     const domain = new URL(href).hostname.replace(/^www\./, '');
     state.links.unshift({ id: uid(), url: href, domain, createdAt: Date.now() });
-    save('sw_links', state.links);
+    if (!save('sw_links', state.links)) {
+      state.links.shift();
+      flashError('Storage full — remove something first');
+      return;
+    }
     flashSaved();
     linkInput.value = '';
     renderLinks();
   });
 
   renderLinks();
+
+  /* ---------------- room decor (links + uploaded photos, masonry) ---------------- */
+
+  function buildPhotoCard(item, i, onDelete) {
+    const card = document.createElement('div');
+    card.className = 'card photo-card';
+    card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
+
+    const img = document.createElement('img');
+    img.src = item.dataUrl;
+    img.loading = 'lazy';
+    img.alt = '';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'card-delete';
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    delBtn.addEventListener('click', () => {
+      card.classList.add('removing');
+      setTimeout(() => onDelete(), 260);
+    });
+
+    card.append(img, delBtn);
+    return card;
+  }
+
+  function renderDecor() {
+    const listEl = document.getElementById('list-decor');
+    const emptyEl = document.getElementById('empty-decor');
+    const items = state.decor;
+    listEl.innerHTML = '';
+    emptyEl.classList.toggle('show', items.length === 0);
+
+    items.forEach((item, i) => {
+      const onDelete = () => {
+        state.decor = state.decor.filter(x => x.id !== item.id);
+        save('sw_decor', state.decor);
+        renderDecor();
+      };
+      const card = item.kind === 'photo' ? buildPhotoCard(item, i, onDelete) : buildLinkCard(item, i, onDelete);
+      listEl.append(card);
+    });
+  }
+
+  function addDecorItem(item) {
+    state.decor.unshift(item);
+    if (!save('sw_decor', state.decor)) {
+      state.decor.shift();
+      flashError('Storage full — remove a photo or two');
+      return false;
+    }
+    flashSaved();
+    renderDecor();
+    return true;
+  }
+
+  const decorLinkForm = document.getElementById('decorLinkForm');
+  const decorLinkInput = document.getElementById('decorLinkInput');
+  decorLinkForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const href = normalizeUrl(decorLinkInput.value);
+    if (!href) {
+      decorLinkInput.focus();
+      decorLinkInput.style.borderColor = 'rgba(226,114,91,0.6)';
+      setTimeout(() => { decorLinkInput.style.borderColor = ''; }, 900);
+      return;
+    }
+    const domain = new URL(href).hostname.replace(/^www\./, '');
+    if (addDecorItem({ id: uid(), kind: 'link', url: href, domain, createdAt: Date.now() })) {
+      decorLinkInput.value = '';
+    }
+  });
+
+  function compressImage(file, maxDim = 1100, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('bad image'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const decorPhotoInput = document.getElementById('decorPhotoInput');
+  decorPhotoInput.addEventListener('change', async () => {
+    const files = Array.from(decorPhotoInput.files || []).filter(f => f.type.startsWith('image/'));
+    for (const file of files) {
+      try {
+        const dataUrl = await compressImage(file);
+        const ok = addDecorItem({ id: uid(), kind: 'photo', dataUrl, createdAt: Date.now() });
+        if (!ok) break;
+      } catch {
+        flashError("Couldn't read that photo");
+      }
+    }
+    decorPhotoInput.value = '';
+  });
+
+  renderDecor();
 })();
