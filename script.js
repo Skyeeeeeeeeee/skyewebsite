@@ -125,6 +125,7 @@ function activateTab(name, { skipHash } = {}) {
   tabButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
   views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   const active = tabButtons.find(b => b.dataset.view === name);
+  tabGlow.classList.toggle('hidden', !active);
   if (active) positionGlow(active);
   if (!skipHash) history.replaceState(null, '', '#' + name);
 }
@@ -133,12 +134,14 @@ tabButtons.forEach(btn => {
   btn.addEventListener('click', () => activateTab(btn.dataset.view));
 });
 
+document.getElementById('brandHome').addEventListener('click', () => activateTab('home'));
+
 window.addEventListener('resize', () => {
   const active = tabButtons.find(b => b.classList.contains('active'));
   if (active) positionGlow(active);
 });
 
-const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor'];
+const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'home'];
 const initialView = (location.hash || '').replace('#', '');
 activateTab(validViews.includes(initialView) ? initialView : 'notes', { skipHash: true });
 requestAnimationFrame(() => {

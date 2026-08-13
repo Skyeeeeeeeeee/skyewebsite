@@ -39,12 +39,12 @@
 <div class="app-shell hidden" id="appShell">
 
 <header class="topbar">
-  <div class="brand">
+  <button type="button" class="brand" id="brandHome" data-view="home">
     <span class="brand-mark">
       <svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="12.6" r="4.3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="12.6" r="4.3" stroke="currentColor" stroke-width="2"/><path d="M11.3 11.7c.5-1 2-1 2.5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2.7 11.1.6 9.9M21.3 11.1l2.1-1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </span>
     <span class="brand-name">SkyeLens</span>
-  </div>
+  </button>
 
   <nav class="tabs" id="tabs">
     <button class="tab active" data-view="notes">
@@ -238,6 +238,9 @@
       <p>No decor saved yet</p>
     </div>
   </section>
+
+  <!-- HOME (via the SkyeLens logo) -->
+  <section class="view" id="view-home"></section>
 
 </main>
 

@@ -102,7 +102,18 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
 }
+#brandHome {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+#brandHome:hover { opacity: 0.82; }
+#brandHome:active { transform: scale(0.97); }
 .brand-mark {
   width: 24px; height: 24px;
   border-radius: 7px;
@@ -167,8 +178,9 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   border-radius: 2px;
   background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
   box-shadow: 0 0 12px rgba(var(--accent-a-rgb), 0.7), 0 0 4px rgba(var(--accent-b-rgb), 0.6);
-  transition: left 0.35s cubic-bezier(.65,0,.35,1), width 0.35s cubic-bezier(.65,0,.35,1);
+  transition: left 0.35s cubic-bezier(.65,0,.35,1), width 0.35s cubic-bezier(.65,0,.35,1), opacity 0.25s ease;
 }
+.tab-glow.hidden { opacity: 0; }
 
 .topbar-right {
   margin-left: auto;
