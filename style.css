@@ -64,13 +64,15 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 
 .corner-glasses {
   position: fixed;
-  right: 18px;
-  bottom: 16px;
-  z-index: 1;
-  width: 40px;
-  height: 40px;
+  left: auto;
+  top: auto;
+  right: 14px;
+  bottom: 12px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
   color: var(--text-faint);
-  opacity: 0.28;
+  opacity: 0.22;
   transform: rotate(-6deg);
   pointer-events: none;
 }
