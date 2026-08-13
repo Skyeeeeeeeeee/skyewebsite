@@ -121,14 +121,8 @@ sceneCanvas.height = SCENE_H;
 const FLOOR_Y = 74;
 
 const SCENE_COLORS = {
-  wall: '#2a2018',
-  wallTrim: '#221a13',
-  frame: '#4a2f21',
-  frameArt: '#5c3a29',
   lightCord: '#221a13',
   lightGlow: '255,206,133',
-  floor: '#3a2a1e',
-  floorSeam: '#2f2117',
   counterFront: '#4a2f21',
   counterTop: '#6e4632',
   counterShelf: '#241b14',
@@ -162,27 +156,14 @@ function scenePx(x, y, w, h, color) {
 }
 
 function drawSceneRoom(t) {
-  // wall
-  scenePx(0, 0, SCENE_W, FLOOR_Y, SCENE_COLORS.wall);
-  scenePx(0, 54, SCENE_W, 2, SCENE_COLORS.wallTrim);
-
-  // pendant lights
+  // no walls or floor fill — the site's own background shows through; just
+  // string a few warm hanging lights across the open space above the furniture
   [90, 170, 240].forEach((lx, i) => {
     scenePx(lx, 0, 1, 15, SCENE_COLORS.lightCord);
     const glow = 0.65 + 0.35 * Math.sin(t / 1300 + i * 1.4);
     sceneCtx.fillStyle = `rgba(${SCENE_COLORS.lightGlow},${glow.toFixed(2)})`;
     sceneCtx.fillRect(lx - 2, 15, 5, 4);
   });
-
-  // small wall art
-  scenePx(112, 14, 18, 14, SCENE_COLORS.frame);
-  scenePx(114, 16, 14, 10, SCENE_COLORS.frameArt);
-
-  // floor
-  scenePx(0, FLOOR_Y, SCENE_W, SCENE_H - FLOOR_Y, SCENE_COLORS.floor);
-  for (let x = 0; x < SCENE_W; x += 14) {
-    scenePx(x, FLOOR_Y, 1, SCENE_H - FLOOR_Y, SCENE_COLORS.floorSeam);
-  }
 }
 
 function drawSceneCounter(t) {
