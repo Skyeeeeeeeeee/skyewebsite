@@ -115,10 +115,10 @@ const sceneCanvas = document.getElementById('pixelScene');
 const sceneCtx = sceneCanvas.getContext('2d');
 sceneCtx.imageSmoothingEnabled = false;
 
-const SCENE_W = 300, SCENE_H = 96;
+const SCENE_W = 300, SCENE_H = 200;
 sceneCanvas.width = SCENE_W;
 sceneCanvas.height = SCENE_H;
-const FLOOR_Y = 74;
+const FLOOR_Y = 178;
 
 const SCENE_COLORS = {
   lightCord: '#221a13',
@@ -168,37 +168,37 @@ function drawSceneRoom(t) {
 
 function drawSceneCounter(t) {
   // shelf/backsplash — kept short so the barista stands out in clear space to its right
-  scenePx(8, 20, 56, 30, SCENE_COLORS.counterShelf);
+  scenePx(8, 124, 56, 30, SCENE_COLORS.counterShelf);
   for (let row = 0; row < 2; row++) {
     for (let col = 0; col < 4; col++) {
-      scenePx(12 + col * 7, 26 + row * 11, 3, 6, (row + col) % 2 === 0 ? SCENE_COLORS.shelfA : SCENE_COLORS.shelfB);
+      scenePx(12 + col * 7, 130 + row * 11, 3, 6, (row + col) % 2 === 0 ? SCENE_COLORS.shelfA : SCENE_COLORS.shelfB);
     }
   }
 
   // plant
-  scenePx(6, 44, 8, 6, SCENE_COLORS.plantPot);
-  scenePx(6, 38, 4, 6, SCENE_COLORS.plantLeaf);
-  scenePx(10, 36, 5, 7, SCENE_COLORS.plantLeaf);
-  scenePx(8, 34, 4, 5, SCENE_COLORS.plantLeaf);
+  scenePx(6, 148, 8, 6, SCENE_COLORS.plantPot);
+  scenePx(6, 142, 4, 6, SCENE_COLORS.plantLeaf);
+  scenePx(10, 140, 5, 7, SCENE_COLORS.plantLeaf);
+  scenePx(8, 138, 4, 5, SCENE_COLORS.plantLeaf);
 
   // espresso machine
-  scenePx(24, 40, 14, 10, SCENE_COLORS.machineBody);
+  scenePx(24, 144, 14, 10, SCENE_COLORS.machineBody);
   const blink = 0.5 + 0.5 * Math.sin(t / 500);
   sceneCtx.fillStyle = `rgba(232,181,99,${blink.toFixed(2)})`;
-  sceneCtx.fillRect(29, 42, 2, 2);
+  sceneCtx.fillRect(29, 146, 2, 2);
 
   // barista behind the counter (torso only — counter front hides the rest)
-  scenePx(52, 20, 6, 2, SCENE_COLORS.machineBody); // hair, dark for a clear silhouette top
-  scenePx(52, 22, 6, 6, SCENE_COLORS.skin);
-  scenePx(50, 28, 10, 22, SCENE_COLORS.apron);
-  scenePx(59, 42, 4, 4, SCENE_COLORS.mug);
-  scenePx(60, 43, 2, 2, SCENE_COLORS.coffee);
+  scenePx(52, 124, 6, 2, SCENE_COLORS.machineBody); // hair, dark for a clear silhouette top
+  scenePx(52, 126, 6, 6, SCENE_COLORS.skin);
+  scenePx(50, 132, 10, 22, SCENE_COLORS.apron);
+  scenePx(59, 146, 4, 4, SCENE_COLORS.mug);
+  scenePx(60, 147, 2, 2, SCENE_COLORS.coffee);
   const wipeFrame = Math.floor(t / 300) % 2;
-  scenePx(wipeFrame === 0 ? 58 : 61, 41, 2, 2, SCENE_COLORS.cloth);
+  scenePx(wipeFrame === 0 ? 58 : 61, 145, 2, 2, SCENE_COLORS.cloth);
 
   // counter top + front (drawn last so it hides the barista's lower half)
-  scenePx(4, 50, 64, 2, SCENE_COLORS.counterTop);
-  scenePx(4, 52, 64, FLOOR_Y - 52, SCENE_COLORS.counterFront);
+  scenePx(4, 154, 64, 2, SCENE_COLORS.counterTop);
+  scenePx(4, 156, 64, FLOOR_Y - 156, SCENE_COLORS.counterFront);
 }
 
 function drawSceneCup(cx, topY) {

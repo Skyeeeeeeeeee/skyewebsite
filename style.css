@@ -357,20 +357,20 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 }
 
 .pixel-scene-wrap {
-  width: 100%;
-  max-width: 1080px;
-  margin: 60px auto 0;
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
 }
 .pixel-scene {
   display: block;
   width: 100%;
-  aspect-ratio: 300 / 96;
+  height: 100%;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
-}
-@media (max-width: 860px) {
-  .pixel-scene-wrap { margin-top: 24px; }
 }
 
 .new-btn {
