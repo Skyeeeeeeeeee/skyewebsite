@@ -1,19 +1,18 @@
 :root {
-  --bg: #14100d;
-  --bg-2: #1b1512;
-  --surface: rgba(255, 238, 220, 0.035);
-  --surface-hover: rgba(255, 238, 220, 0.065);
-  --border: rgba(255, 224, 195, 0.09);
-  --border-soft: rgba(255, 224, 195, 0.055);
-  --text: #f4ede3;
-  --text-dim: #a89c8d;
-  --text-faint: #6b6156;
-  --accent-a: #d97f4a;
-  --accent-b: #e8a355;
-  --accent-c: #c4593a;
-  --accent-a-rgb: 217, 127, 74;
-  --accent-b-rgb: 232, 163, 85;
-  --danger: #e2725b;
+  --bg: #1b1a19;
+  --bg-2: #221f1e;
+  --surface: rgba(226, 214, 200, 0.035);
+  --surface-hover: rgba(226, 214, 200, 0.06);
+  --border: rgba(220, 205, 190, 0.08);
+  --border-soft: rgba(220, 205, 190, 0.05);
+  --text: #ece5db;
+  --text-dim: #a49889;
+  --text-faint: #6c6259;
+  --accent-a: #8a5a3b;
+  --accent-b: #c9976a;
+  --accent-a-rgb: 138, 90, 59;
+  --accent-b-rgb: 201, 151, 106;
+  --danger: #c96a52;
   --radius: 16px;
   --radius-sm: 10px;
   font-size: 16px;
@@ -39,8 +38,8 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 /* scrollbars */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,238,220,0.09); border-radius: 10px; border: 2px solid var(--bg); }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,238,220,0.16); }
+::-webkit-scrollbar-thumb { background: rgba(226,214,200,0.09); border-radius: 10px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: rgba(226,214,200,0.16); }
 
 /* ---------------- background fx ---------------- */
 .bg-fx {
@@ -50,43 +49,11 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   pointer-events: none;
   overflow: hidden;
 }
-.orb {
+.vignette {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.35;
-  will-change: transform;
-}
-.orb-a {
-  width: 620px; height: 620px;
-  background: radial-gradient(circle, var(--accent-a), transparent 70%);
-  top: -220px; left: -160px;
-  animation: float-a 26s ease-in-out infinite;
-}
-.orb-b {
-  width: 560px; height: 560px;
-  background: radial-gradient(circle, var(--accent-b), transparent 70%);
-  bottom: -240px; right: -160px;
-  animation: float-b 32s ease-in-out infinite;
-}
-.orb-c {
-  width: 420px; height: 420px;
-  background: radial-gradient(circle, var(--accent-c), transparent 70%);
-  top: 40%; left: 50%;
-  opacity: 0.16;
-  animation: float-c 40s ease-in-out infinite;
-}
-@keyframes float-a {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(80px, 60px) scale(1.15); }
-}
-@keyframes float-b {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-70px, -50px) scale(1.1); }
-}
-@keyframes float-c {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.3) rotate(30deg); }
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.035), transparent 55%),
+              radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.35), transparent 60%);
 }
 .grain {
   position: absolute; inset: 0;
@@ -105,7 +72,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   gap: 40px;
   padding: 0 32px;
   height: 68px;
-  background: rgba(20, 16, 13, 0.72);
+  background: rgba(27, 26, 25, 0.72);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-bottom: 1px solid var(--border-soft);
@@ -159,7 +126,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 }
 .tab:hover {
   color: var(--text);
-  background: rgba(255,238,220,0.045);
+  background: rgba(226,214,200,0.05);
 }
 .tab:active { transform: scale(0.96); }
 .tab.active { color: #fff; }
@@ -316,7 +283,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 }
 .composer input,
 .composer textarea {
-  background: rgba(255,238,220,0.03);
+  background: rgba(226,214,200,0.03);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -329,7 +296,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 .composer input:focus,
 .composer textarea:focus {
   border-color: rgba(var(--accent-a-rgb), 0.45);
-  background: rgba(255,238,220,0.05);
+  background: rgba(226,214,200,0.05);
 }
 .composer input::placeholder, .composer textarea::placeholder { color: var(--text-faint); }
 .composer textarea { min-height: 110px; resize: vertical; line-height: 1.55; }
@@ -360,7 +327,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   border-color: var(--border);
   color: var(--text-dim);
 }
-.btn-ghost:hover { color: var(--text); border-color: rgba(255,238,220,0.22); }
+.btn-ghost:hover { color: var(--text); border-color: rgba(226,214,200,0.22); }
 
 /* ---------------- grid + cards ---------------- */
 .grid {
@@ -507,7 +474,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 10;
-  background: linear-gradient(135deg, #201a15, #241c16);
+  background: linear-gradient(135deg, #232120, #27231f);
   overflow: hidden;
 }
 .link-thumb img {
@@ -523,7 +490,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 
 .link-thumb .shimmer {
   position: absolute; inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255,238,220,0.06) 50%, transparent 70%);
+  background: linear-gradient(100deg, transparent 30%, rgba(226,214,200,0.06) 50%, transparent 70%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -558,7 +525,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   width: 18px; height: 18px;
   border-radius: 4px;
   flex-shrink: 0;
-  background: rgba(255,238,220,0.06);
+  background: rgba(226,214,200,0.06);
   object-fit: cover;
 }
 .link-info { min-width: 0; flex: 1; }
@@ -577,7 +544,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.link-card .card-delete { position: absolute; top: 10px; right: 10px; background: rgba(20,16,13,0.6); backdrop-filter: blur(6px); }
+.link-card .card-delete { position: absolute; top: 10px; right: 10px; background: rgba(27,26,25,0.6); backdrop-filter: blur(6px); }
 .link-card a.link-open-hit { position: absolute; inset: 0; z-index: 1; }
 
 /* ---------------- room decor ---------------- */
@@ -639,7 +606,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   transition: transform 0.4s ease;
 }
 .photo-card:hover img { transform: scale(1.03); }
-.photo-card .card-delete { position: absolute; top: 10px; right: 10px; background: rgba(20,16,13,0.6); backdrop-filter: blur(6px); }
+.photo-card .card-delete { position: absolute; top: 10px; right: 10px; background: rgba(27,26,25,0.6); backdrop-filter: blur(6px); }
 
 /* ---------------- empty states ---------------- */
 .empty {
