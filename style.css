@@ -356,6 +356,28 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   font-size: 0.95rem;
 }
 
+.pixel-scene-wrap {
+  width: 100%;
+  max-width: 1080px;
+  margin: 60px auto 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+.pixel-scene {
+  display: block;
+  width: 100%;
+  height: 260px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+@media (max-width: 860px) {
+  .pixel-scene-wrap { margin-top: 24px; }
+  .pixel-scene { height: 190px; }
+}
+
 .new-btn {
   position: absolute;
   top: 2px;

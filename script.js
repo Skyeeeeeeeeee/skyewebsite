@@ -108,6 +108,197 @@ function fmtDate(ts) {
     ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
+/* ================= pixel coffee shop scene (SkyeLens / home view) ================= */
+// declared before the tabs section since activateTab() (called during initial boot,
+// possibly with a #home deep link) needs startPixelScene/stopPixelScene to already exist
+const sceneCanvas = document.getElementById('pixelScene');
+const sceneCtx = sceneCanvas.getContext('2d');
+sceneCtx.imageSmoothingEnabled = false;
+
+const SCENE_W = 300, SCENE_H = 72;
+sceneCanvas.width = SCENE_W;
+sceneCanvas.height = SCENE_H;
+const GROUND_Y = 60;
+
+const SCENE_COLORS = {
+  skyTop: '#171310',
+  skyBottom: '#241b14',
+  ground: '#1d1916',
+  groundLine: '#39302a',
+  wall: '#6e4632',
+  wallShadow: '#5c3a29',
+  roof: '#8a5a3b',
+  roofLight: '#c9976a',
+  door: '#2c2018',
+  windowFrame: '#241b14',
+  sign: '#e8d9c4',
+  signIcon: '#4a3626',
+};
+
+function scenePx(x, y, w, h, color) {
+  sceneCtx.fillStyle = color;
+  sceneCtx.fillRect(Math.round(x), Math.round(y), w, h);
+}
+
+const sceneStars = Array.from({ length: 16 }, (_, i) => ({
+  x: (i * 37 + 11) % SCENE_W,
+  y: 3 + ((i * 53) % 42),
+  phase: i * 1.7,
+  speed: 0.6 + (i % 5) * 0.15,
+}));
+
+function drawSceneSky(t) {
+  const grad = sceneCtx.createLinearGradient(0, 0, 0, GROUND_Y);
+  grad.addColorStop(0, SCENE_COLORS.skyTop);
+  grad.addColorStop(1, SCENE_COLORS.skyBottom);
+  sceneCtx.fillStyle = grad;
+  sceneCtx.fillRect(0, 0, SCENE_W, GROUND_Y);
+  sceneStars.forEach(s => {
+    const b = 0.3 + 0.7 * Math.abs(Math.sin(t / 1000 * s.speed + s.phase));
+    sceneCtx.fillStyle = `rgba(244,237,227,${b.toFixed(2)})`;
+    sceneCtx.fillRect(s.x, s.y, 1, 1);
+  });
+}
+
+function drawSceneGround(t) {
+  scenePx(0, GROUND_Y, SCENE_W, SCENE_H - GROUND_Y, SCENE_COLORS.ground);
+  const offset = (t / 45) % 18;
+  for (let x = -18 + offset; x < SCENE_W; x += 18) {
+    scenePx(x, GROUND_Y + 5, 8, 1, SCENE_COLORS.groundLine);
+  }
+}
+
+const BUILD_X = 108, BUILD_Y = 20, BUILD_W = 84;
+
+function drawSceneBuilding(t) {
+  const bh = GROUND_Y - BUILD_Y;
+  scenePx(BUILD_X, BUILD_Y + 8, BUILD_W, bh - 8, SCENE_COLORS.wall);
+  scenePx(BUILD_X, BUILD_Y + 8, BUILD_W, 2, SCENE_COLORS.wallShadow);
+
+  // awning with scalloped edge
+  scenePx(BUILD_X - 4, BUILD_Y, BUILD_W + 8, 8, SCENE_COLORS.roof);
+  for (let i = 0; i < (BUILD_W + 8) / 6; i++) {
+    scenePx(BUILD_X - 4 + i * 6, BUILD_Y + 8, 3, 2, i % 2 === 0 ? SCENE_COLORS.roofLight : SCENE_COLORS.roof);
+  }
+
+  // chimney
+  scenePx(BUILD_X + BUILD_W - 12, BUILD_Y - 10, 6, 10, SCENE_COLORS.wallShadow);
+
+  // door
+  scenePx(BUILD_X + BUILD_W / 2 - 7, GROUND_Y - 20, 14, 20, SCENE_COLORS.door);
+  scenePx(BUILD_X + BUILD_W / 2 - 7, GROUND_Y - 20, 14, 2, SCENE_COLORS.wallShadow);
+
+  // windows, warm pulsing glow
+  const glow = 0.72 + 0.28 * Math.sin(t / 1400);
+  [BUILD_X + 10, BUILD_X + BUILD_W - 26].forEach(wx => {
+    scenePx(wx - 1, BUILD_Y + 13, 18, 16, SCENE_COLORS.windowFrame);
+    sceneCtx.fillStyle = `rgba(255,206,133,${glow.toFixed(2)})`;
+    sceneCtx.fillRect(wx, BUILD_Y + 14, 16, 14);
+    scenePx(wx + 7, BUILD_Y + 14, 2, 14, SCENE_COLORS.windowFrame);
+    scenePx(wx, BUILD_Y + 20, 16, 2, SCENE_COLORS.windowFrame);
+  });
+
+  // hanging sign with a tiny mug icon
+  scenePx(BUILD_X + BUILD_W / 2 - 10, BUILD_Y + 10, 20, 10, SCENE_COLORS.sign);
+  scenePx(BUILD_X + BUILD_W / 2 - 4, BUILD_Y + 13, 6, 5, SCENE_COLORS.signIcon);
+  scenePx(BUILD_X + BUILD_W / 2 + 2, BUILD_Y + 14, 2, 2, SCENE_COLORS.signIcon);
+}
+
+const TABLE_X = 86, TABLE_Y = GROUND_Y - 10;
+let sceneSteam = [];
+let lastSteamSpawn = 0;
+
+function drawSceneTable() {
+  scenePx(TABLE_X, TABLE_Y, 10, 2, SCENE_COLORS.roof);
+  scenePx(TABLE_X + 4, TABLE_Y + 2, 2, 8, SCENE_COLORS.wallShadow);
+  scenePx(TABLE_X + 2, TABLE_Y - 3, 4, 3, SCENE_COLORS.sign);
+}
+
+function updateSceneSteam(t, dt) {
+  if (t - lastSteamSpawn > 700) {
+    lastSteamSpawn = t;
+    sceneSteam.push({ x: TABLE_X + 3 + (Math.random() * 2 - 1), y: TABLE_Y - 4, age: 0 });
+  }
+  sceneSteam.forEach(p => {
+    p.age += dt;
+    p.y -= dt * 0.006;
+    p.x += Math.sin(p.age / 300) * 0.05;
+  });
+  sceneSteam = sceneSteam.filter(p => p.age < 1800);
+}
+
+function drawSceneSteam() {
+  sceneSteam.forEach(p => {
+    const a = Math.max(0, 1 - p.age / 1800) * 0.5;
+    sceneCtx.fillStyle = `rgba(232,224,212,${a.toFixed(2)})`;
+    sceneCtx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+  });
+}
+
+const scenePeople = [
+  { x: 40, dir: 1, speed: 12, minX: 8, maxX: 96, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
+  { x: 220, dir: -1, speed: 9, minX: 200, maxX: 292, bodyColor: '#8a5a3b', headColor: '#d9b98f', shoeColor: '#241b14' },
+];
+
+function updateScenePeople(dt) {
+  scenePeople.forEach(p => {
+    p.x += p.dir * p.speed * dt / 1000;
+    if (p.x > p.maxX) { p.x = p.maxX; p.dir = -1; }
+    if (p.x < p.minX) { p.x = p.minX; p.dir = 1; }
+  });
+}
+
+function drawScenePerson(p, t) {
+  const x = Math.round(p.x);
+  const y = GROUND_Y - 9;
+  const frame = Math.floor(t / 220) % 2;
+  scenePx(x + 1, y, 2, 2, p.headColor);
+  scenePx(x, y + 2, 4, 3, p.bodyColor);
+  const step = p.dir > 0 ? 1 : -1;
+  if (frame === 0) {
+    scenePx(x, y + 5, 1, 2, p.shoeColor);
+    scenePx(x + 3, y + 5, 1, 2, p.shoeColor);
+  } else {
+    scenePx(x + step, y + 5, 1, 2, p.shoeColor);
+    scenePx(x + 3 - step, y + 5, 1, 2, p.shoeColor);
+  }
+}
+
+let sceneRunning = false;
+let sceneRafId = null;
+let sceneLastT = null;
+
+function sceneFrame(t) {
+  if (!sceneRunning) return;
+  if (sceneLastT == null) sceneLastT = t;
+  const dt = Math.min(t - sceneLastT, 60);
+  sceneLastT = t;
+
+  updateSceneSteam(t, dt);
+  updateScenePeople(dt);
+
+  sceneCtx.clearRect(0, 0, SCENE_W, SCENE_H);
+  drawSceneSky(t);
+  drawSceneGround(t);
+  drawSceneBuilding(t);
+  drawSceneTable();
+  drawSceneSteam();
+  scenePeople.forEach(p => drawScenePerson(p, t));
+
+  sceneRafId = requestAnimationFrame(sceneFrame);
+}
+
+function startPixelScene() {
+  if (sceneRunning) return;
+  sceneRunning = true;
+  sceneLastT = null;
+  sceneRafId = requestAnimationFrame(sceneFrame);
+}
+function stopPixelScene() {
+  sceneRunning = false;
+  if (sceneRafId) cancelAnimationFrame(sceneRafId);
+}
+
 /* ---------------- tabs ---------------- */
 const tabsEl = document.getElementById('tabs');
 const tabButtons = Array.from(document.querySelectorAll('.tab'));
@@ -128,6 +319,7 @@ function activateTab(name, { skipHash } = {}) {
   tabGlow.classList.toggle('hidden', !active);
   if (active) positionGlow(active);
   if (!skipHash) history.replaceState(null, '', '#' + name);
+  if (name === 'home') startPixelScene(); else stopPixelScene();
 }
 
 tabButtons.forEach(btn => {
