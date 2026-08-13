@@ -115,24 +115,45 @@ const sceneCanvas = document.getElementById('pixelScene');
 const sceneCtx = sceneCanvas.getContext('2d');
 sceneCtx.imageSmoothingEnabled = false;
 
-const SCENE_W = 300, SCENE_H = 72;
+const SCENE_W = 300, SCENE_H = 96;
 sceneCanvas.width = SCENE_W;
 sceneCanvas.height = SCENE_H;
-const GROUND_Y = 60;
+const FLOOR_Y = 74;
 
 const SCENE_COLORS = {
-  skyTop: '#171310',
-  skyBottom: '#241b14',
-  ground: '#1d1916',
-  groundLine: '#39302a',
-  wall: '#6e4632',
-  wallShadow: '#5c3a29',
-  roof: '#8a5a3b',
-  roofLight: '#c9976a',
-  door: '#2c2018',
-  windowFrame: '#241b14',
-  sign: '#e8d9c4',
-  signIcon: '#4a3626',
+  wall: '#2a2018',
+  wallTrim: '#221a13',
+  frame: '#4a2f21',
+  frameArt: '#5c3a29',
+  lightCord: '#221a13',
+  lightGlow: '255,206,133',
+  floor: '#3a2a1e',
+  floorSeam: '#2f2117',
+  counterFront: '#4a2f21',
+  counterTop: '#6e4632',
+  counterShelf: '#241b14',
+  shelfA: '#e8d9c4',
+  shelfB: '#4a2f21',
+  plantPot: '#6b4230',
+  plantLeaf: '#5a7a4a',
+  machineBody: '#332720',
+  machineLight: '#e8b563',
+  apron: '#8a5a3b',
+  skin: '#d9b98f',
+  cloth: '#f4ede3',
+  mug: '#e8d9c4',
+  coffee: '#3a2416',
+  tableWood: '#6e4632',
+  tableLeg: '#4a2f21',
+  chairWood: '#4a2f21',
+  boothWood: '#3a2a1e',
+  boothCushion: '#7a3b32',
+  jukeboxBody: '#4a2f21',
+  jukeboxTrim: '#6e4632',
+  jukeboxPanelA: '#e8b563',
+  jukeboxPanelB: '#7a3b32',
+  jukeboxPanelC: '#5a8a7a',
+  note: '#e8d9c4',
 };
 
 function scenePx(x, y, w, h, color) {
@@ -140,85 +161,122 @@ function scenePx(x, y, w, h, color) {
   sceneCtx.fillRect(Math.round(x), Math.round(y), w, h);
 }
 
-const sceneStars = Array.from({ length: 16 }, (_, i) => ({
-  x: (i * 37 + 11) % SCENE_W,
-  y: 3 + ((i * 53) % 42),
-  phase: i * 1.7,
-  speed: 0.6 + (i % 5) * 0.15,
-}));
+function drawSceneRoom(t) {
+  // wall
+  scenePx(0, 0, SCENE_W, FLOOR_Y, SCENE_COLORS.wall);
+  scenePx(0, 54, SCENE_W, 2, SCENE_COLORS.wallTrim);
 
-function drawSceneSky(t) {
-  const grad = sceneCtx.createLinearGradient(0, 0, 0, GROUND_Y);
-  grad.addColorStop(0, SCENE_COLORS.skyTop);
-  grad.addColorStop(1, SCENE_COLORS.skyBottom);
-  sceneCtx.fillStyle = grad;
-  sceneCtx.fillRect(0, 0, SCENE_W, GROUND_Y);
-  sceneStars.forEach(s => {
-    const b = 0.3 + 0.7 * Math.abs(Math.sin(t / 1000 * s.speed + s.phase));
-    sceneCtx.fillStyle = `rgba(244,237,227,${b.toFixed(2)})`;
-    sceneCtx.fillRect(s.x, s.y, 1, 1);
+  // pendant lights
+  [90, 170, 240].forEach((lx, i) => {
+    scenePx(lx, 0, 1, 15, SCENE_COLORS.lightCord);
+    const glow = 0.65 + 0.35 * Math.sin(t / 1300 + i * 1.4);
+    sceneCtx.fillStyle = `rgba(${SCENE_COLORS.lightGlow},${glow.toFixed(2)})`;
+    sceneCtx.fillRect(lx - 2, 15, 5, 4);
   });
-}
 
-function drawSceneGround(t) {
-  scenePx(0, GROUND_Y, SCENE_W, SCENE_H - GROUND_Y, SCENE_COLORS.ground);
-  const offset = (t / 45) % 18;
-  for (let x = -18 + offset; x < SCENE_W; x += 18) {
-    scenePx(x, GROUND_Y + 5, 8, 1, SCENE_COLORS.groundLine);
+  // small wall art
+  scenePx(112, 14, 18, 14, SCENE_COLORS.frame);
+  scenePx(114, 16, 14, 10, SCENE_COLORS.frameArt);
+
+  // floor
+  scenePx(0, FLOOR_Y, SCENE_W, SCENE_H - FLOOR_Y, SCENE_COLORS.floor);
+  for (let x = 0; x < SCENE_W; x += 14) {
+    scenePx(x, FLOOR_Y, 1, SCENE_H - FLOOR_Y, SCENE_COLORS.floorSeam);
   }
 }
 
-const BUILD_X = 108, BUILD_Y = 20, BUILD_W = 84;
-
-function drawSceneBuilding(t) {
-  const bh = GROUND_Y - BUILD_Y;
-  scenePx(BUILD_X, BUILD_Y + 8, BUILD_W, bh - 8, SCENE_COLORS.wall);
-  scenePx(BUILD_X, BUILD_Y + 8, BUILD_W, 2, SCENE_COLORS.wallShadow);
-
-  // awning with scalloped edge
-  scenePx(BUILD_X - 4, BUILD_Y, BUILD_W + 8, 8, SCENE_COLORS.roof);
-  for (let i = 0; i < (BUILD_W + 8) / 6; i++) {
-    scenePx(BUILD_X - 4 + i * 6, BUILD_Y + 8, 3, 2, i % 2 === 0 ? SCENE_COLORS.roofLight : SCENE_COLORS.roof);
+function drawSceneCounter(t) {
+  // shelf/backsplash — kept short so the barista stands out in clear space to its right
+  scenePx(8, 20, 56, 30, SCENE_COLORS.counterShelf);
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 4; col++) {
+      scenePx(12 + col * 7, 26 + row * 11, 3, 6, (row + col) % 2 === 0 ? SCENE_COLORS.shelfA : SCENE_COLORS.shelfB);
+    }
   }
 
-  // chimney
-  scenePx(BUILD_X + BUILD_W - 12, BUILD_Y - 10, 6, 10, SCENE_COLORS.wallShadow);
+  // plant
+  scenePx(6, 44, 8, 6, SCENE_COLORS.plantPot);
+  scenePx(6, 38, 4, 6, SCENE_COLORS.plantLeaf);
+  scenePx(10, 36, 5, 7, SCENE_COLORS.plantLeaf);
+  scenePx(8, 34, 4, 5, SCENE_COLORS.plantLeaf);
 
-  // door
-  scenePx(BUILD_X + BUILD_W / 2 - 7, GROUND_Y - 20, 14, 20, SCENE_COLORS.door);
-  scenePx(BUILD_X + BUILD_W / 2 - 7, GROUND_Y - 20, 14, 2, SCENE_COLORS.wallShadow);
+  // espresso machine
+  scenePx(24, 40, 14, 10, SCENE_COLORS.machineBody);
+  const blink = 0.5 + 0.5 * Math.sin(t / 500);
+  sceneCtx.fillStyle = `rgba(232,181,99,${blink.toFixed(2)})`;
+  sceneCtx.fillRect(29, 42, 2, 2);
 
-  // windows, warm pulsing glow
-  const glow = 0.72 + 0.28 * Math.sin(t / 1400);
-  [BUILD_X + 10, BUILD_X + BUILD_W - 26].forEach(wx => {
-    scenePx(wx - 1, BUILD_Y + 13, 18, 16, SCENE_COLORS.windowFrame);
-    sceneCtx.fillStyle = `rgba(255,206,133,${glow.toFixed(2)})`;
-    sceneCtx.fillRect(wx, BUILD_Y + 14, 16, 14);
-    scenePx(wx + 7, BUILD_Y + 14, 2, 14, SCENE_COLORS.windowFrame);
-    scenePx(wx, BUILD_Y + 20, 16, 2, SCENE_COLORS.windowFrame);
-  });
+  // barista behind the counter (torso only — counter front hides the rest)
+  scenePx(52, 20, 6, 2, SCENE_COLORS.machineBody); // hair, dark for a clear silhouette top
+  scenePx(52, 22, 6, 6, SCENE_COLORS.skin);
+  scenePx(50, 28, 10, 22, SCENE_COLORS.apron);
+  scenePx(59, 42, 4, 4, SCENE_COLORS.mug);
+  scenePx(60, 43, 2, 2, SCENE_COLORS.coffee);
+  const wipeFrame = Math.floor(t / 300) % 2;
+  scenePx(wipeFrame === 0 ? 58 : 61, 41, 2, 2, SCENE_COLORS.cloth);
 
-  // hanging sign with a tiny mug icon
-  scenePx(BUILD_X + BUILD_W / 2 - 10, BUILD_Y + 10, 20, 10, SCENE_COLORS.sign);
-  scenePx(BUILD_X + BUILD_W / 2 - 4, BUILD_Y + 13, 6, 5, SCENE_COLORS.signIcon);
-  scenePx(BUILD_X + BUILD_W / 2 + 2, BUILD_Y + 14, 2, 2, SCENE_COLORS.signIcon);
+  // counter top + front (drawn last so it hides the barista's lower half)
+  scenePx(4, 50, 64, 2, SCENE_COLORS.counterTop);
+  scenePx(4, 52, 64, FLOOR_Y - 52, SCENE_COLORS.counterFront);
 }
 
-const TABLE_X = 86, TABLE_Y = GROUND_Y - 10;
+function drawSceneCup(cx, topY) {
+  scenePx(cx - 2, topY - 4, 4, 4, SCENE_COLORS.mug);
+  scenePx(cx - 1, topY - 4, 2, 1, SCENE_COLORS.coffee);
+}
+
+function drawSceneTable(cx) {
+  const topY = FLOOR_Y - 10;
+  scenePx(cx - 6, topY, 12, 2, SCENE_COLORS.tableWood);
+  scenePx(cx - 1, topY + 2, 2, 8, SCENE_COLORS.tableLeg);
+  drawSceneCup(cx, topY);
+}
+
+function drawSeatedPerson(cx, colors) {
+  const seatY = FLOOR_Y - 8;
+  scenePx(cx - 4, seatY, 8, 8, SCENE_COLORS.chairWood);
+  scenePx(cx - 3, seatY - 15, 6, 6, colors.headColor);
+  scenePx(cx - 4, seatY - 9, 8, 9, colors.bodyColor);
+}
+
+function drawSceneBooth(t) {
+  scenePx(236, FLOOR_Y - 24, 60, 4, SCENE_COLORS.boothWood);
+  scenePx(236, FLOOR_Y - 20, 60, 7, SCENE_COLORS.boothCushion);
+  scenePx(250, FLOOR_Y - 12, 20, 2, SCENE_COLORS.tableWood);
+  scenePx(259, FLOOR_Y - 10, 2, 10, SCENE_COLORS.tableLeg);
+  drawSeatedPerson(260, { headColor: '#d9b98f', bodyColor: '#7a3b32' });
+  drawSceneCup(260, FLOOR_Y - 12);
+}
+
+function drawSceneJukebox(t) {
+  scenePx(219, FLOOR_Y - 30, 16, 30, SCENE_COLORS.jukeboxTrim);
+  scenePx(221, FLOOR_Y - 28, 12, 26, SCENE_COLORS.jukeboxBody);
+  scenePx(222, FLOOR_Y - 34, 10, 5, SCENE_COLORS.jukeboxTrim);
+  scenePx(223, FLOOR_Y - 24, 8, 12, SCENE_COLORS.jukeboxPanelA);
+  const blinkA = Math.sin(t / 400) > 0;
+  const blinkB = Math.sin(t / 400 + 2) > 0;
+  const blinkC = Math.sin(t / 400 + 4) > 0;
+  scenePx(224, FLOOR_Y - 22, 2, 2, blinkA ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
+  scenePx(227, FLOOR_Y - 22, 2, 2, blinkB ? SCENE_COLORS.jukeboxPanelC : SCENE_COLORS.jukeboxTrim);
+  scenePx(230, FLOOR_Y - 22, 2, 2, blinkC ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
+}
+
+// ---- particles: coffee steam (multiple cups) + jukebox musical notes ----
+const steamSpots = [
+  { x: 95, y: FLOOR_Y - 14, lastSpawn: 0 },
+  { x: 150, y: FLOOR_Y - 14, lastSpawn: 233 },
+  { x: 205, y: FLOOR_Y - 14, lastSpawn: 466 },
+  { x: 260, y: FLOOR_Y - 26, lastSpawn: 350 },
+];
 let sceneSteam = [];
-let lastSteamSpawn = 0;
-
-function drawSceneTable() {
-  scenePx(TABLE_X, TABLE_Y, 10, 2, SCENE_COLORS.roof);
-  scenePx(TABLE_X + 4, TABLE_Y + 2, 2, 8, SCENE_COLORS.wallShadow);
-  scenePx(TABLE_X + 2, TABLE_Y - 3, 4, 3, SCENE_COLORS.sign);
-}
 
 function updateSceneSteam(t, dt) {
-  if (t - lastSteamSpawn > 700) {
-    lastSteamSpawn = t;
-    sceneSteam.push({ x: TABLE_X + 3 + (Math.random() * 2 - 1), y: TABLE_Y - 4, age: 0 });
-  }
+  steamSpots.forEach(spot => {
+    if (t - spot.lastSpawn > 750) {
+      spot.lastSpawn = t;
+      sceneSteam.push({ x: spot.x + (Math.random() * 2 - 1), y: spot.y, age: 0 });
+    }
+  });
   sceneSteam.forEach(p => {
     p.age += dt;
     p.y -= dt * 0.006;
@@ -235,9 +293,36 @@ function drawSceneSteam() {
   });
 }
 
+let sceneNotes = [];
+let lastNoteSpawn = 0;
+
+function updateSceneNotes(t, dt) {
+  if (t - lastNoteSpawn > 900) {
+    lastNoteSpawn = t;
+    sceneNotes.push({ x: 227, y: FLOOR_Y - 35, age: 0 });
+  }
+  sceneNotes.forEach(n => {
+    n.age += dt;
+    n.y -= dt * 0.009;
+    n.x += dt * 0.006;
+  });
+  sceneNotes = sceneNotes.filter(n => n.age < 2200);
+}
+
+function drawSceneNotes() {
+  sceneNotes.forEach(n => {
+    const a = Math.max(0, 1 - n.age / 2200);
+    sceneCtx.fillStyle = `rgba(232,217,196,${a.toFixed(2)})`;
+    const x = Math.round(n.x), y = Math.round(n.y);
+    sceneCtx.fillRect(x, y, 2, 2);
+    sceneCtx.fillRect(x + 1, y - 3, 1, 3);
+  });
+}
+
+// ---- customers walking the floor, sized clearly bigger than the furniture ----
 const scenePeople = [
-  { x: 40, dir: 1, speed: 12, minX: 8, maxX: 96, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
-  { x: 220, dir: -1, speed: 9, minX: 200, maxX: 292, bodyColor: '#8a5a3b', headColor: '#d9b98f', shoeColor: '#241b14' },
+  { x: 70, dir: 1, speed: 10, minX: 66, maxX: 140, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
+  { x: 200, dir: -1, speed: 8, minX: 145, maxX: 218, bodyColor: '#4a6b7a', headColor: '#d9b98f', shoeColor: '#241b14' },
 ];
 
 function updateScenePeople(dt) {
@@ -250,17 +335,17 @@ function updateScenePeople(dt) {
 
 function drawScenePerson(p, t) {
   const x = Math.round(p.x);
-  const y = GROUND_Y - 9;
+  const y = FLOOR_Y - 18;
   const frame = Math.floor(t / 220) % 2;
-  scenePx(x + 1, y, 2, 2, p.headColor);
-  scenePx(x, y + 2, 4, 3, p.bodyColor);
+  scenePx(x + 1, y, 6, 5, p.headColor);
+  scenePx(x, y + 5, 8, 9, p.bodyColor);
   const step = p.dir > 0 ? 1 : -1;
   if (frame === 0) {
-    scenePx(x, y + 5, 1, 2, p.shoeColor);
-    scenePx(x + 3, y + 5, 1, 2, p.shoeColor);
+    scenePx(x + 1, y + 14, 2, 4, p.shoeColor);
+    scenePx(x + 5, y + 14, 2, 4, p.shoeColor);
   } else {
-    scenePx(x + step, y + 5, 1, 2, p.shoeColor);
-    scenePx(x + 3 - step, y + 5, 1, 2, p.shoeColor);
+    scenePx(x + 1 + step, y + 14, 2, 4, p.shoeColor);
+    scenePx(x + 5 - step, y + 14, 2, 4, p.shoeColor);
   }
 }
 
@@ -275,14 +360,20 @@ function sceneFrame(t) {
   sceneLastT = t;
 
   updateSceneSteam(t, dt);
+  updateSceneNotes(t, dt);
   updateScenePeople(dt);
 
   sceneCtx.clearRect(0, 0, SCENE_W, SCENE_H);
-  drawSceneSky(t);
-  drawSceneGround(t);
-  drawSceneBuilding(t);
-  drawSceneTable();
+  drawSceneRoom(t);
+  drawSceneCounter(t);
+  drawSceneTable(95);
+  drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' });
+  drawSceneTable(150);
+  drawSceneTable(205);
+  drawSceneBooth(t);
+  drawSceneJukebox(t);
   drawSceneSteam();
+  drawSceneNotes();
   scenePeople.forEach(p => drawScenePerson(p, t));
 
   sceneRafId = requestAnimationFrame(sceneFrame);

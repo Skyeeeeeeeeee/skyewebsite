@@ -368,14 +368,13 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 .pixel-scene {
   display: block;
   width: 100%;
-  height: 260px;
+  aspect-ratio: 300 / 96;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
 }
 @media (max-width: 860px) {
   .pixel-scene-wrap { margin-top: 24px; }
-  .pixel-scene { height: 190px; }
 }
 
 .new-btn {
