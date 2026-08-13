@@ -654,6 +654,7 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   bottom: 12px;
 }
 .memory-thumb {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -668,7 +669,9 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   cursor: pointer;
   overflow: hidden;
   padding: 0;
-  transition: all 0.2s ease;
+  transition: width 0.28s cubic-bezier(.34,1.56,.64,1), height 0.28s cubic-bezier(.34,1.56,.64,1),
+              border-radius 0.28s ease, box-shadow 0.28s ease, border-color 0.2s ease,
+              background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 .memory-thumb img {
   width: 100%;
@@ -682,6 +685,15 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   border-color: rgba(var(--accent-a-rgb), 0.4);
   background: var(--surface-hover);
   transform: translateY(-1px);
+}
+.memory-thumb:has(img) { z-index: 4; }
+.memory-thumb:has(img):hover {
+  width: 160px;
+  height: 160px;
+  border-radius: 14px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.5);
+  transform: translateY(0);
+  z-index: 6;
 }
 
 .memory-thumb-popover {
