@@ -115,7 +115,7 @@ const sceneCanvas = document.getElementById('pixelScene');
 const sceneCtx = sceneCanvas.getContext('2d');
 sceneCtx.imageSmoothingEnabled = false;
 
-const SCENE_W = 300, SCENE_H = 200;
+const SCENE_W = 245, SCENE_H = 200;
 sceneCanvas.width = SCENE_W;
 sceneCanvas.height = SCENE_H;
 const FLOOR_Y = 178;
@@ -140,8 +140,6 @@ const SCENE_COLORS = {
   tableWood: '#6e4632',
   tableLeg: '#4a2f21',
   chairWood: '#4a2f21',
-  boothWood: '#3a2a1e',
-  boothCushion: '#7a3b32',
   jukeboxBody: '#4a2f21',
   jukeboxTrim: '#6e4632',
   jukeboxPanelA: '#e8b563',
@@ -158,7 +156,7 @@ function scenePx(x, y, w, h, color) {
 function drawSceneRoom(t) {
   // no walls or floor fill — the site's own background shows through; just
   // string a few warm hanging lights across the open space above the furniture
-  [90, 170, 240].forEach((lx, i) => {
+  [45, 120, 220].forEach((lx, i) => {
     scenePx(lx, 0, 1, 15, SCENE_COLORS.lightCord);
     const glow = 0.65 + 0.35 * Math.sin(t / 1300 + i * 1.4);
     sceneCtx.fillStyle = `rgba(${SCENE_COLORS.lightGlow},${glow.toFixed(2)})`;
@@ -218,15 +216,6 @@ function drawSeatedPerson(cx, colors) {
   scenePx(cx - 4, seatY, 8, 8, SCENE_COLORS.chairWood);
   scenePx(cx - 3, seatY - 15, 6, 6, colors.headColor);
   scenePx(cx - 4, seatY - 9, 8, 9, colors.bodyColor);
-}
-
-function drawSceneBooth(t) {
-  scenePx(236, FLOOR_Y - 24, 60, 4, SCENE_COLORS.boothWood);
-  scenePx(236, FLOOR_Y - 20, 60, 7, SCENE_COLORS.boothCushion);
-  scenePx(250, FLOOR_Y - 12, 20, 2, SCENE_COLORS.tableWood);
-  scenePx(259, FLOOR_Y - 10, 2, 10, SCENE_COLORS.tableLeg);
-  drawSeatedPerson(260, { headColor: '#d9b98f', bodyColor: '#7a3b32' });
-  drawSceneCup(260, FLOOR_Y - 12);
 }
 
 function drawSceneJukebox(t) {
@@ -351,7 +340,6 @@ function sceneFrame(t) {
   drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' });
   drawSceneTable(150);
   drawSceneTable(205);
-  drawSceneBooth(t);
   drawSceneJukebox(t);
   drawSceneSteam();
   drawSceneNotes();

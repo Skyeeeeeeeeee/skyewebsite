@@ -360,8 +360,8 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   position: fixed;
   top: 68px;
   left: 0;
-  right: 0;
   bottom: 0;
+  aspect-ratio: 245 / 200;
   pointer-events: none;
 }
 .pixel-scene {
