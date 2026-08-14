@@ -366,18 +366,24 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 }
 .barista-outline {
   position: absolute;
-  left: 19.18%;
-  top: 60.5%;
-  width: 6.53%;
-  height: 17.5%;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 3px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 .barista-outline.visible {
   opacity: 1;
+}
+.barista-outline path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 .barista-name {
   position: absolute;
