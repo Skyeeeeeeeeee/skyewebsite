@@ -364,6 +364,69 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
   aspect-ratio: 245 / 200;
   pointer-events: none;
 }
+.barista-outline {
+  position: absolute;
+  left: 19.18%;
+  top: 60.5%;
+  width: 6.53%;
+  height: 17.5%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.barista-outline.visible {
+  opacity: 1;
+}
+.barista-name {
+  position: absolute;
+  left: 22.45%;
+  top: 78%;
+  transform: translate(-50%, 4px);
+  font: 500 10px "Inter", sans-serif;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.barista-name.visible {
+  opacity: 1;
+}
+.barista-bubble {
+  position: absolute;
+  left: 22.45%;
+  top: 60.5%;
+  transform: translate(-50%, calc(-100% - 8px)) scale(0.96);
+  transform-origin: bottom center;
+  background: rgba(244, 237, 227, 0.96);
+  color: #241b14;
+  font: 500 10.5px "Inter", sans-serif;
+  padding: 4px 8px;
+  border-radius: 7px;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.barista-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(244, 237, 227, 0.96);
+  border-bottom: 0;
+}
+.barista-bubble.visible {
+  opacity: 1;
+  transform: translate(-50%, calc(-100% - 8px)) scale(1);
+}
 .scene-clock {
   position: fixed;
   top: 50%;

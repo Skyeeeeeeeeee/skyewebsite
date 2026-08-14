@@ -122,8 +122,10 @@ const FLOOR_Y = 178;
 
 // ---- barista hover/click interaction ("coffee guy") ----
 const BARISTA_BBOX = { x: 47, y: 121, w: 16, h: 35 };
-let sceneHoverBartender = false;
-let sceneChatBubbleUntil = 0;
+const baristaOutlineEl = document.getElementById('baristaOutline');
+const baristaNameEl = document.getElementById('baristaName');
+const baristaBubbleEl = document.getElementById('baristaBubble');
+let baristaBubbleTimeoutId = null;
 
 function sceneClientToLogical(clientX, clientY) {
   const rect = sceneCanvas.getBoundingClientRect();
@@ -139,17 +141,22 @@ function pointInBox(px, py, box) {
 
 sceneCanvas.addEventListener('mousemove', (e) => {
   const p = sceneClientToLogical(e.clientX, e.clientY);
-  sceneHoverBartender = pointInBox(p.x, p.y, BARISTA_BBOX);
-  sceneCanvas.style.cursor = sceneHoverBartender ? 'pointer' : 'default';
+  const hover = pointInBox(p.x, p.y, BARISTA_BBOX);
+  baristaOutlineEl.classList.toggle('visible', hover);
+  baristaNameEl.classList.toggle('visible', hover);
+  sceneCanvas.style.cursor = hover ? 'pointer' : 'default';
 });
 sceneCanvas.addEventListener('mouseleave', () => {
-  sceneHoverBartender = false;
+  baristaOutlineEl.classList.remove('visible');
+  baristaNameEl.classList.remove('visible');
   sceneCanvas.style.cursor = 'default';
 });
 sceneCanvas.addEventListener('click', (e) => {
   const p = sceneClientToLogical(e.clientX, e.clientY);
   if (pointInBox(p.x, p.y, BARISTA_BBOX)) {
-    sceneChatBubbleUntil = Date.now() + 2600;
+    baristaBubbleEl.classList.add('visible');
+    if (baristaBubbleTimeoutId) clearTimeout(baristaBubbleTimeoutId);
+    baristaBubbleTimeoutId = setTimeout(() => baristaBubbleEl.classList.remove('visible'), 2200);
   }
 });
 
@@ -184,62 +191,6 @@ const SCENE_COLORS = {
 function scenePx(x, y, w, h, color) {
   sceneCtx.fillStyle = color;
   sceneCtx.fillRect(Math.round(x), Math.round(y), w, h);
-}
-
-function drawSceneChatBubble() {
-  const text = "hey, what's up";
-  sceneCtx.save();
-  sceneCtx.font = '700 7px monospace';
-  const textW = Math.ceil(sceneCtx.measureText(text).width);
-  const padX = 4, padY = 3;
-  const bubbleW = textW + padX * 2;
-  const bubbleH = 7 + padY * 2;
-  const cx = Math.round(BARISTA_BBOX.x + BARISTA_BBOX.w / 2);
-  const bubbleX = Math.round(cx - bubbleW / 2);
-  const bubbleY = BARISTA_BBOX.y - 22 - bubbleH;
-
-  sceneCtx.fillStyle = '#f4ede3';
-  sceneCtx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
-  sceneCtx.beginPath();
-  sceneCtx.moveTo(cx - 3, bubbleY + bubbleH);
-  sceneCtx.lineTo(cx + 3, bubbleY + bubbleH);
-  sceneCtx.lineTo(cx, bubbleY + bubbleH + 5);
-  sceneCtx.closePath();
-  sceneCtx.fill();
-
-  sceneCtx.strokeStyle = '#241b14';
-  sceneCtx.lineWidth = 1;
-  sceneCtx.strokeRect(bubbleX + 0.5, bubbleY + 0.5, bubbleW - 1, bubbleH - 1);
-
-  sceneCtx.fillStyle = '#241b14';
-  sceneCtx.textAlign = 'center';
-  sceneCtx.textBaseline = 'middle';
-  sceneCtx.fillText(text, cx, bubbleY + bubbleH / 2 + 1);
-  sceneCtx.restore();
-}
-
-function drawBaristaOverlay() {
-  if (sceneHoverBartender) {
-    sceneCtx.save();
-    sceneCtx.strokeStyle = 'rgba(255,255,255,0.85)';
-    sceneCtx.lineWidth = 1;
-    sceneCtx.strokeRect(BARISTA_BBOX.x + 0.5, BARISTA_BBOX.y + 0.5, BARISTA_BBOX.w - 1, BARISTA_BBOX.h - 1);
-
-    sceneCtx.font = '700 7px monospace';
-    sceneCtx.textAlign = 'center';
-    sceneCtx.textBaseline = 'bottom';
-    const nameX = BARISTA_BBOX.x + BARISTA_BBOX.w / 2;
-    const nameY = BARISTA_BBOX.y - 3;
-    sceneCtx.fillStyle = 'rgba(0,0,0,0.55)';
-    sceneCtx.fillText('coffee guy', nameX + 0.5, nameY + 0.5);
-    sceneCtx.fillStyle = '#ffffff';
-    sceneCtx.fillText('coffee guy', nameX, nameY);
-    sceneCtx.restore();
-  }
-
-  if (Date.now() < sceneChatBubbleUntil) {
-    drawSceneChatBubble();
-  }
 }
 
 function drawSceneRoom(t) {
@@ -442,7 +393,6 @@ function sceneFrame(t) {
   sceneCtx.clearRect(0, 0, SCENE_W, SCENE_H);
   drawSceneRoom(t);
   drawSceneCounter(t);
-  drawBaristaOverlay();
   drawSceneTable(95);
   drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' });
   drawSceneTable(150);
