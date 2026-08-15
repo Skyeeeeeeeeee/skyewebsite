@@ -146,8 +146,8 @@ const SCENE_HOTSPOTS = [
   {
     id: 'regular',
     name: 'the regular',
-    bbox: { x: 72, y: 154, w: 20, h: 24 },
-    outline: 'M82,154 L88,154 L88,160 L89,160 L89,171 L78,171 L78,178 L72,178 L72,176 L74,176 L74,171 L75,171 L75,167 L81,167 L81,160 L82,160 Z',
+    bbox: { x: 78, y: 160, w: 16, h: 18 },
+    outline: 'M81,160 L87,160 L87,165 L88,165 L88,172 L94,172 L94,178 L92,178 L92,174 L91,174 L91,178 L89,178 L89,174 L88,174 L80,174 L80,165 L81,165 Z',
     lines: ['this is my table', 'been here since open', 'shh, i’m reading', 'best seat in the shop'],
   },
   {
@@ -461,24 +461,25 @@ function drawSceneTable(cx) {
   drawSceneCup(cx, topY);
 }
 
-// sits facing left, legs off the front of the chair: thigh forward, shin down to
-// the floor. bob is negative (upward), so the shin stretches to stay attached.
+// same head/body blocks as the walkers so everyone stays the same size; he just
+// faces right toward his table with his legs folded out in front of the stool.
+// bob is negative (upward), so the shins stretch to keep his feet on the floor.
 function drawSeatedPerson(cx, colors, t = 0, dance = 0) {
   const bob = dance > 0 ? partyBob(t, cx) * dance : 0;
 
-  // chair first so the sitter layers on top; it sits lower than the table top and
-  // in the darker wood, otherwise seat and table merge into one long bar
-  scenePx(cx + 5, 157, 3, 14, SCENE_COLORS.chairWood);  // back post
-  scenePx(cx - 6, 171, 11, 2, SCENE_COLORS.chairWood);  // seat
-  scenePx(cx + 3, 173, 2, 5, SCENE_COLORS.chairWood);   // back leg
-  scenePx(cx - 5, 173, 2, 5, SCENE_COLORS.chairWood);   // front leg
+  // backless stool, tucked under him and clear of the legs
+  scenePx(cx - 6, 174, 10, 2, SCENE_COLORS.chairWood);
+  scenePx(cx - 5, 176, 2, 2, SCENE_COLORS.chairWood);
+  scenePx(cx + 1, 176, 2, 2, SCENE_COLORS.chairWood);
 
-  scenePx(cx - 10, 171 + bob, 4, 7 - bob, colors.legColor); // shin
-  scenePx(cx - 9, 167 + bob, 8, 4, colors.legColor);        // thigh
-  scenePx(cx - 12, 176, 6, 2, colors.shoeColor);            // foot
-  scenePx(cx - 3, 160 + bob, 8, 11, colors.bodyColor);      // torso
-  scenePx(cx - 2, 154 + bob, 6, 6, colors.headColor);       // head
-  if (dance > 0) drawDanceArms(cx - 3, 162 + bob, 8, colors.bodyColor, t, cx);
+  // stick legs at the walkers' 2px gauge: one thigh forward, two shins down
+  scenePx(cx + 4, 172 + bob, 6, 2, colors.shoeColor);
+  scenePx(cx + 5, 174 + bob, 2, 4 - bob, colors.shoeColor);
+  scenePx(cx + 8, 174 + bob, 2, 4 - bob, colors.shoeColor);
+
+  scenePx(cx - 4, 165 + bob, 8, 9, colors.bodyColor);
+  scenePx(cx - 3, 160 + bob, 6, 5, colors.headColor);
+  if (dance > 0) drawDanceArms(cx - 4, 167 + bob, 8, colors.bodyColor, t, cx);
 }
 
 function drawSceneJukebox(t, dance = 0) {
@@ -633,7 +634,7 @@ function sceneFrame(t) {
   drawSceneRoom(t, ambience);
   drawSceneCounter(t, dance);
   drawSceneTable(95);
-  drawSeatedPerson(84, { headColor: '#e8d9c4', bodyColor: '#5c3a29', legColor: '#3f5a66', shoeColor: '#241b14' }, t, dance);
+  drawSeatedPerson(84, { headColor: '#e8d9c4', bodyColor: '#6b4230', shoeColor: '#2c2018' }, t, dance);
   drawSceneTable(150);
   drawSceneTable(205);
   drawSceneJukebox(t, dance);
