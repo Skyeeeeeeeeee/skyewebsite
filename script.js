@@ -115,7 +115,11 @@ const sceneCanvas = document.getElementById('pixelScene');
 const sceneCtx = sceneCanvas.getContext('2d');
 sceneCtx.imageSmoothingEnabled = false;
 
-const SCENE_W = 245, SCENE_H = 200;
+// the room is the whole screen: height is fixed so the furniture keeps its scale,
+// width follows the viewport so pixels stay square and the floor runs off to the right
+const SCENE_H = 200;
+const SCENE_MIN_W = 245;
+let SCENE_W = SCENE_MIN_W;
 sceneCanvas.width = SCENE_W;
 sceneCanvas.height = SCENE_H;
 const FLOOR_Y = 178;
@@ -162,6 +166,23 @@ const sceneHotspotBubbleEl = document.getElementById('sceneHotspotBubble');
 let sceneBubbleTimeoutId = null;
 let sceneHoveredId = null;
 const hotspotLineIndex = {};
+
+// widen the pixel grid to match the wrap's aspect so the scene fills the screen.
+// re-checked periodically from the frame loop because the view's entry animation
+// puts a transform on #view-home, which briefly makes this fixed wrap measure
+// against the view instead of the viewport and report no height.
+function resizeScene() {
+  const wrap = sceneCanvas.parentElement;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (!w || !h) return; // no box yet — try again next check
+  const next = Math.max(SCENE_MIN_W, Math.round(SCENE_H * (w / h)));
+  if (next === SCENE_W && sceneCanvas.width === next) return;
+  SCENE_W = next;
+  sceneCanvas.width = SCENE_W;
+  sceneCanvas.height = SCENE_H;
+  sceneCtx.imageSmoothingEnabled = false; // resizing the backing store resets this
+  sceneOutlineEl.setAttribute('viewBox', `0 0 ${SCENE_W} ${SCENE_H}`);
+}
 
 function sceneClientToLogical(clientX, clientY) {
   const rect = sceneCanvas.getBoundingClientRect();
@@ -221,23 +242,10 @@ sceneCanvas.addEventListener('mouseleave', () => {
   sceneCanvas.style.cursor = 'default';
 });
 
-// three quick jukebox clicks kicks off the disco early instead of waiting for the hour
-let jukeboxClicks = [];
 sceneCanvas.addEventListener('click', (e) => {
   const p = sceneClientToLogical(e.clientX, e.clientY);
   const hit = hotspotAt(p.x, p.y);
-  if (!hit) return;
-  if (hit.id === 'jukebox') {
-    const now = Date.now();
-    jukeboxClicks = jukeboxClicks.filter(ts => now - ts < 1200);
-    jukeboxClicks.push(now);
-    if (jukeboxClicks.length >= 3) {
-      jukeboxClicks = [];
-      startPartyNow();
-      return;
-    }
-  }
-  sayHotspotLine(hit);
+  if (hit) sayHotspotLine(hit);
 });
 
 const SCENE_COLORS = {
@@ -309,26 +317,18 @@ function getAmbience(date = new Date()) {
 const PARTY_MS = 60000;
 const PARTY_DROP_MS = 2600;
 const PARTY_LIFT_MS = 4000;
-const PARTY_BALL_X = 132; // offset from the middle pendant so the two cords read apart
 const PARTY_BALL_REST_Y = 46;
 const PARTY_BALL_TOP_Y = -16;
 const PARTY_BALL_R = 8;
-let manualPartyStartedAt = null;
 
-function startPartyNow() {
-  manualPartyStartedAt = Date.now();
-}
+// the ball hangs dead centre of the screen, wherever the edges happen to be
+const partyBallX = () => Math.round(SCENE_W / 2);
 
-// milliseconds into the current party, or null when the shop is behaving itself
+// milliseconds into the current party, or null the other 59 minutes of the hour
 function getPartyElapsed() {
-  if (manualPartyStartedAt != null) {
-    const elapsed = Date.now() - manualPartyStartedAt;
-    if (elapsed < PARTY_MS) return elapsed;
-    manualPartyStartedAt = null;
-  }
   const now = new Date();
-  if (now.getMinutes() === 0) return now.getSeconds() * 1000 + now.getMilliseconds();
-  return null;
+  if (now.getMinutes() !== 0) return null;
+  return now.getSeconds() * 1000 + now.getMilliseconds();
 }
 
 function partyBallY(elapsed) {
@@ -346,19 +346,22 @@ function partyBallY(elapsed) {
 
 function drawDiscoBall(t, elapsed) {
   const cy = partyBallY(elapsed);
-  scenePx(PARTY_BALL_X, 0, 1, Math.max(0, Math.round(cy - PARTY_BALL_R)), SCENE_COLORS.lightCord);
+  const cx = partyBallX();
+  scenePx(cx, 0, 1, Math.max(0, Math.round(cy - PARTY_BALL_R)), SCENE_COLORS.lightCord);
   for (let gy = -PARTY_BALL_R; gy < PARTY_BALL_R; gy += 2) {
     for (let gx = -PARTY_BALL_R; gx < PARTY_BALL_R; gx += 2) {
       if (gx * gx + gy * gy > PARTY_BALL_R * PARTY_BALL_R) continue;
       const lum = 0.45 + 0.55 * Math.abs(Math.sin(gx * 0.55 + gy * 0.4 + t / 90));
       const hue = Math.round((t / 7 + gx * 22 + gy * 12) % 360);
-      scenePx(PARTY_BALL_X + gx, cy + gy, 2, 2, `hsl(${hue},72%,${Math.round(28 + lum * 46)}%)`);
+      scenePx(cx + gx, cy + gy, 2, 2, `hsl(${hue},72%,${Math.round(28 + lum * 46)}%)`);
     }
   }
 }
 
 function drawPartyBeams(t, elapsed, strength) {
   const cy = partyBallY(elapsed);
+  const cx = partyBallX();
+  const reach = SCENE_W + SCENE_H;
   sceneCtx.save();
   sceneCtx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 5; i++) {
@@ -366,9 +369,9 @@ function drawPartyBeams(t, elapsed, strength) {
     const hue = Math.round((t / 9 + i * 72) % 360);
     sceneCtx.fillStyle = `hsla(${hue},85%,60%,${(0.075 * strength).toFixed(3)})`;
     sceneCtx.beginPath();
-    sceneCtx.moveTo(PARTY_BALL_X, cy);
-    sceneCtx.lineTo(PARTY_BALL_X + Math.cos(ang - 0.11) * 260, cy + Math.sin(ang - 0.11) * 260);
-    sceneCtx.lineTo(PARTY_BALL_X + Math.cos(ang + 0.11) * 260, cy + Math.sin(ang + 0.11) * 260);
+    sceneCtx.moveTo(cx, cy);
+    sceneCtx.lineTo(cx + Math.cos(ang - 0.11) * reach, cy + Math.sin(ang - 0.11) * reach);
+    sceneCtx.lineTo(cx + Math.cos(ang + 0.11) * reach, cy + Math.sin(ang + 0.11) * reach);
     sceneCtx.closePath();
     sceneCtx.fill();
   }
@@ -488,7 +491,6 @@ const steamSpots = [
   { x: 95, y: FLOOR_Y - 14, lastSpawn: 0 },
   { x: 150, y: FLOOR_Y - 14, lastSpawn: 233 },
   { x: 205, y: FLOOR_Y - 14, lastSpawn: 466 },
-  { x: 260, y: FLOOR_Y - 26, lastSpawn: 350 },
 ];
 let sceneSteam = [];
 
@@ -597,11 +599,15 @@ function updateSceneClockEl() {
   sceneClockAmPmEl.textContent = rawHours < 12 ? 'AM' : 'PM';
 }
 
+let sceneResizeTick = 0;
+
 function sceneFrame(t) {
   if (!sceneRunning) return;
   if (sceneLastT == null) sceneLastT = t;
   const dt = Math.min(t - sceneLastT, 60);
   sceneLastT = t;
+
+  if (sceneResizeTick++ % 15 === 0) resizeScene();
 
   const partyElapsed = getPartyElapsed();
   const dance = partyDanceStrength(partyElapsed);
@@ -648,6 +654,7 @@ function startPixelScene() {
   if (sceneRunning) return;
   sceneRunning = true;
   sceneLastT = null;
+  resizeScene(); // the wrap only has a box once the home view is showing
   sceneRafId = requestAnimationFrame(sceneFrame);
   updateSceneClockEl();
   sceneClockIntervalId = setInterval(updateSceneClockEl, 1000);
@@ -690,6 +697,7 @@ document.getElementById('brandHome').addEventListener('click', () => activateTab
 window.addEventListener('resize', () => {
   const active = tabButtons.find(b => b.classList.contains('active'));
   if (active) positionGlow(active);
+  if (sceneRunning) resizeScene();
 });
 
 const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'home'];
