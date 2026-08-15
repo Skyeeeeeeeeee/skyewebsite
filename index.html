@@ -75,6 +75,9 @@
   </nav>
 
   <div class="topbar-right">
+    <button class="icon-btn" id="searchBtn" title="Search everything (press /)" aria-label="Search">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M15.8 15.8 20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
     <span class="sync-status" id="syncStatus"></span>
     <span class="save-indicator" id="saveIndicator">Saved</span>
     <button class="signout-btn" id="signOutBtn" title="Sign out">
@@ -164,12 +167,15 @@
     <div class="composer" id="composer-wishlist">
       <input type="text" id="wishlist-title" placeholder="Item name" maxlength="80">
       <input type="text" id="wishlist-link" placeholder="Link (optional)" maxlength="500">
+      <input type="text" id="wishlist-tags" placeholder="Tags, comma separated (optional)" maxlength="200">
       <textarea id="wishlist-desc" placeholder="Any notes? Size, color, why you want it..." maxlength="600"></textarea>
       <div class="composer-actions">
         <button class="btn-ghost" data-cancel="wishlist">Cancel</button>
         <button class="btn-solid" data-save="wishlist">Add to Wishlist</button>
       </div>
     </div>
+
+    <div class="tag-filter" id="wishlistTagFilter"></div>
 
     <div class="grid" id="list-wishlist"></div>
     <div class="empty" id="empty-wishlist">
@@ -187,8 +193,11 @@
 
     <form class="link-add" id="linkForm">
       <input type="text" id="linkInput" placeholder="Paste a URL, e.g. wikipedia.org" autocomplete="off">
+      <input type="text" id="linkTagsInput" class="tags-input" placeholder="Tags (optional)" autocomplete="off" maxlength="200">
       <button type="submit" class="btn-solid">Add Link</button>
     </form>
+
+    <div class="tag-filter" id="linksTagFilter"></div>
 
     <div class="toolbar-row">
       <div class="size-toggle" id="linksSizeToggle" role="group" aria-label="Link card size">
@@ -243,11 +252,11 @@
   <section class="view" id="view-home">
     <div class="pixel-scene-wrap">
       <canvas id="pixelScene" class="pixel-scene" aria-hidden="true"></canvas>
-      <svg class="barista-outline" id="baristaOutline" viewBox="0 0 245 200" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M50,122 L60,122 L60,130 L62,130 L62,156 L48,156 L48,130 L50,130 Z" />
+      <svg class="scene-outline" id="sceneOutline" viewBox="0 0 245 200" preserveAspectRatio="none" aria-hidden="true">
+        <path id="sceneOutlinePath" d="" />
       </svg>
-      <div class="barista-name" id="baristaName" aria-hidden="true">coffee guy</div>
-      <div class="barista-bubble" id="baristaBubble" aria-hidden="true">hey, what's up</div>
+      <div class="scene-hotspot-name" id="sceneHotspotName" aria-hidden="true"></div>
+      <div class="scene-hotspot-bubble" id="sceneHotspotBubble" aria-hidden="true"></div>
     </div>
     <div class="scene-clock" id="sceneClock" aria-hidden="true">
       <span class="scene-clock-time" id="sceneClockTime"></span><span class="scene-clock-sec" id="sceneClockSec"></span>
@@ -256,6 +265,17 @@
   </section>
 
 </main>
+
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-panel" role="dialog" aria-label="Search everything">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M15.8 15.8 20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" id="searchInput" placeholder="Search notes, events, memories, wishes, links…" autocomplete="off" spellcheck="false">
+      <kbd>esc</kbd>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
 
 <div class="corner-glasses" aria-hidden="true">
   <svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="12.6" r="4.3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="12.6" r="4.3" stroke="currentColor" stroke-width="2"/><path d="M11.3 11.7c.5-1 2-1 2.5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2.7 11.1.6 9.9M21.3 11.1l2.1-1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>

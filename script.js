@@ -120,12 +120,48 @@ sceneCanvas.width = SCENE_W;
 sceneCanvas.height = SCENE_H;
 const FLOOR_Y = 178;
 
-// ---- barista hover/click interaction ("coffee guy") ----
-const BARISTA_BBOX = { x: 47, y: 121, w: 16, h: 35 };
-const baristaOutlineEl = document.getElementById('baristaOutline');
-const baristaNameEl = document.getElementById('baristaName');
-const baristaBubbleEl = document.getElementById('baristaBubble');
-let baristaBubbleTimeoutId = null;
+/* ---- clickable characters in the scene ----
+   each hotspot owns a hit box, a silhouette path traced around its sprite, and
+   the lines it says; the outline/name/bubble DOM is shared and repositioned */
+const JUKEBOX_TRACKS = [
+  'now playing — "espresso dreams"',
+  'now playing — "slow morning, no plans"',
+  'now playing — "two sugars"',
+  'now playing — "rain on the window"',
+  'now playing — "last call, one more song"',
+];
+
+const SCENE_HOTSPOTS = [
+  {
+    id: 'barista',
+    name: 'coffee guy',
+    bbox: { x: 47, y: 121, w: 16, h: 35 },
+    outline: 'M50,122 L60,122 L60,130 L62,130 L62,156 L48,156 L48,130 L50,130 Z',
+    lines: ["hey, what's up", 'usual for you?', 'fresh pot just landed', 'take a seat, i got you'],
+  },
+  {
+    id: 'regular',
+    name: 'the regular',
+    bbox: { x: 81, y: 154, w: 10, h: 24 },
+    outline: 'M83,155 L89,155 L89,161 L90,161 L90,178 L82,178 L82,161 L83,161 Z',
+    lines: ['this is my table', 'been here since open', 'shh, i’m reading', 'best seat in the shop'],
+  },
+  {
+    id: 'jukebox',
+    name: 'jukebox',
+    bbox: { x: 219, y: 143, w: 16, h: 35 },
+    outline: 'M222,144 L232,144 L232,148 L235,148 L235,178 L219,178 L219,148 L222,148 Z',
+    lines: JUKEBOX_TRACKS,
+  },
+];
+
+const sceneOutlineEl = document.getElementById('sceneOutline');
+const sceneOutlinePathEl = document.getElementById('sceneOutlinePath');
+const sceneHotspotNameEl = document.getElementById('sceneHotspotName');
+const sceneHotspotBubbleEl = document.getElementById('sceneHotspotBubble');
+let sceneBubbleTimeoutId = null;
+let sceneHoveredId = null;
+const hotspotLineIndex = {};
 
 function sceneClientToLogical(clientX, clientY) {
   const rect = sceneCanvas.getBoundingClientRect();
@@ -139,25 +175,69 @@ function pointInBox(px, py, box) {
   return px >= box.x && px <= box.x + box.w && py >= box.y && py <= box.y + box.h;
 }
 
+function hotspotAt(px, py) {
+  return SCENE_HOTSPOTS.find(h => pointInBox(px, py, h.bbox)) || null;
+}
+
+const pctX = (v) => (v / SCENE_W * 100) + '%';
+const pctY = (v) => (v / SCENE_H * 100) + '%';
+
+function showHotspotHover(hotspot) {
+  if (!hotspot) {
+    sceneHoveredId = null;
+    sceneOutlineEl.classList.remove('visible');
+    sceneHotspotNameEl.classList.remove('visible');
+    return;
+  }
+  if (sceneHoveredId === hotspot.id) return;
+  sceneHoveredId = hotspot.id;
+  sceneOutlinePathEl.setAttribute('d', hotspot.outline);
+  sceneHotspotNameEl.textContent = hotspot.name;
+  sceneHotspotNameEl.style.left = pctX(hotspot.bbox.x + hotspot.bbox.w / 2);
+  sceneHotspotNameEl.style.top = pctY(hotspot.bbox.y + hotspot.bbox.h);
+  sceneOutlineEl.classList.add('visible');
+  sceneHotspotNameEl.classList.add('visible');
+}
+
+function sayHotspotLine(hotspot) {
+  const i = (hotspotLineIndex[hotspot.id] ?? -1) + 1;
+  hotspotLineIndex[hotspot.id] = i;
+  sceneHotspotBubbleEl.textContent = hotspot.lines[i % hotspot.lines.length];
+  sceneHotspotBubbleEl.style.left = pctX(hotspot.bbox.x + hotspot.bbox.w / 2);
+  sceneHotspotBubbleEl.style.top = pctY(hotspot.bbox.y);
+  sceneHotspotBubbleEl.classList.add('visible');
+  if (sceneBubbleTimeoutId) clearTimeout(sceneBubbleTimeoutId);
+  sceneBubbleTimeoutId = setTimeout(() => sceneHotspotBubbleEl.classList.remove('visible'), 2600);
+}
+
 sceneCanvas.addEventListener('mousemove', (e) => {
   const p = sceneClientToLogical(e.clientX, e.clientY);
-  const hover = pointInBox(p.x, p.y, BARISTA_BBOX);
-  baristaOutlineEl.classList.toggle('visible', hover);
-  baristaNameEl.classList.toggle('visible', hover);
-  sceneCanvas.style.cursor = hover ? 'pointer' : 'default';
+  const hit = hotspotAt(p.x, p.y);
+  showHotspotHover(hit);
+  sceneCanvas.style.cursor = hit ? 'pointer' : 'default';
 });
 sceneCanvas.addEventListener('mouseleave', () => {
-  baristaOutlineEl.classList.remove('visible');
-  baristaNameEl.classList.remove('visible');
+  showHotspotHover(null);
   sceneCanvas.style.cursor = 'default';
 });
+
+// three quick jukebox clicks kicks off the disco early instead of waiting for the hour
+let jukeboxClicks = [];
 sceneCanvas.addEventListener('click', (e) => {
   const p = sceneClientToLogical(e.clientX, e.clientY);
-  if (pointInBox(p.x, p.y, BARISTA_BBOX)) {
-    baristaBubbleEl.classList.add('visible');
-    if (baristaBubbleTimeoutId) clearTimeout(baristaBubbleTimeoutId);
-    baristaBubbleTimeoutId = setTimeout(() => baristaBubbleEl.classList.remove('visible'), 2200);
+  const hit = hotspotAt(p.x, p.y);
+  if (!hit) return;
+  if (hit.id === 'jukebox') {
+    const now = Date.now();
+    jukeboxClicks = jukeboxClicks.filter(ts => now - ts < 1200);
+    jukeboxClicks.push(now);
+    if (jukeboxClicks.length >= 3) {
+      jukeboxClicks = [];
+      startPartyNow();
+      return;
+    }
   }
+  sayHotspotLine(hit);
 });
 
 const SCENE_COLORS = {
@@ -193,18 +273,139 @@ function scenePx(x, y, w, h, color) {
   sceneCtx.fillRect(Math.round(x), Math.round(y), w, h);
 }
 
-function drawSceneRoom(t) {
+/* ---- day/night: the shop takes on the colour of the real hour outside ---- */
+const AMBIENCE_KEYS = [
+  { h: 0,  tint: [26, 38, 84],    alpha: 0.44, light: 1.00 },
+  { h: 5,  tint: [40, 46, 92],    alpha: 0.40, light: 0.95 },
+  { h: 7,  tint: [214, 132, 92],  alpha: 0.20, light: 0.55 },
+  { h: 10, tint: [255, 244, 216], alpha: 0.07, light: 0.28 },
+  { h: 15, tint: [255, 240, 208], alpha: 0.07, light: 0.28 },
+  { h: 18, tint: [236, 146, 74],  alpha: 0.20, light: 0.60 },
+  { h: 20, tint: [70, 60, 112],   alpha: 0.34, light: 0.90 },
+  { h: 24, tint: [26, 38, 84],    alpha: 0.44, light: 1.00 },
+];
+
+function getAmbience(date = new Date()) {
+  const h = date.getHours() + date.getMinutes() / 60;
+  let a = AMBIENCE_KEYS[0], b = AMBIENCE_KEYS[AMBIENCE_KEYS.length - 1];
+  for (let i = 0; i < AMBIENCE_KEYS.length - 1; i++) {
+    if (h >= AMBIENCE_KEYS[i].h && h <= AMBIENCE_KEYS[i + 1].h) {
+      a = AMBIENCE_KEYS[i];
+      b = AMBIENCE_KEYS[i + 1];
+      break;
+    }
+  }
+  const span = b.h - a.h;
+  const k = span <= 0 ? 0 : (h - a.h) / span;
+  const mix = (x, y) => x + (y - x) * k;
+  return {
+    tint: [mix(a.tint[0], b.tint[0]), mix(a.tint[1], b.tint[1]), mix(a.tint[2], b.tint[2])],
+    alpha: mix(a.alpha, b.alpha),
+    light: mix(a.light, b.light),
+  };
+}
+
+/* ---- hourly disco: on the hour the ball drops and the whole shop dances ---- */
+const PARTY_MS = 60000;
+const PARTY_DROP_MS = 2600;
+const PARTY_LIFT_MS = 4000;
+const PARTY_BALL_X = 132; // offset from the middle pendant so the two cords read apart
+const PARTY_BALL_REST_Y = 46;
+const PARTY_BALL_TOP_Y = -16;
+const PARTY_BALL_R = 8;
+let manualPartyStartedAt = null;
+
+function startPartyNow() {
+  manualPartyStartedAt = Date.now();
+}
+
+// milliseconds into the current party, or null when the shop is behaving itself
+function getPartyElapsed() {
+  if (manualPartyStartedAt != null) {
+    const elapsed = Date.now() - manualPartyStartedAt;
+    if (elapsed < PARTY_MS) return elapsed;
+    manualPartyStartedAt = null;
+  }
+  const now = new Date();
+  if (now.getMinutes() === 0) return now.getSeconds() * 1000 + now.getMilliseconds();
+  return null;
+}
+
+function partyBallY(elapsed) {
+  if (elapsed < PARTY_DROP_MS) {
+    const p = 1 - Math.pow(1 - elapsed / PARTY_DROP_MS, 3);
+    return PARTY_BALL_TOP_Y + (PARTY_BALL_REST_Y - PARTY_BALL_TOP_Y) * p;
+  }
+  const liftStart = PARTY_MS - PARTY_LIFT_MS;
+  if (elapsed > liftStart) {
+    const p = Math.min(1, (elapsed - liftStart) / PARTY_LIFT_MS);
+    return PARTY_BALL_REST_Y + (PARTY_BALL_TOP_Y - PARTY_BALL_REST_Y) * (p * p);
+  }
+  return PARTY_BALL_REST_Y;
+}
+
+function drawDiscoBall(t, elapsed) {
+  const cy = partyBallY(elapsed);
+  scenePx(PARTY_BALL_X, 0, 1, Math.max(0, Math.round(cy - PARTY_BALL_R)), SCENE_COLORS.lightCord);
+  for (let gy = -PARTY_BALL_R; gy < PARTY_BALL_R; gy += 2) {
+    for (let gx = -PARTY_BALL_R; gx < PARTY_BALL_R; gx += 2) {
+      if (gx * gx + gy * gy > PARTY_BALL_R * PARTY_BALL_R) continue;
+      const lum = 0.45 + 0.55 * Math.abs(Math.sin(gx * 0.55 + gy * 0.4 + t / 90));
+      const hue = Math.round((t / 7 + gx * 22 + gy * 12) % 360);
+      scenePx(PARTY_BALL_X + gx, cy + gy, 2, 2, `hsl(${hue},72%,${Math.round(28 + lum * 46)}%)`);
+    }
+  }
+}
+
+function drawPartyBeams(t, elapsed, strength) {
+  const cy = partyBallY(elapsed);
+  sceneCtx.save();
+  sceneCtx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const ang = Math.PI / 2 + Math.sin(t / 1300 + i * 1.25) * 0.95;
+    const hue = Math.round((t / 9 + i * 72) % 360);
+    sceneCtx.fillStyle = `hsla(${hue},85%,60%,${(0.075 * strength).toFixed(3)})`;
+    sceneCtx.beginPath();
+    sceneCtx.moveTo(PARTY_BALL_X, cy);
+    sceneCtx.lineTo(PARTY_BALL_X + Math.cos(ang - 0.11) * 260, cy + Math.sin(ang - 0.11) * 260);
+    sceneCtx.lineTo(PARTY_BALL_X + Math.cos(ang + 0.11) * 260, cy + Math.sin(ang + 0.11) * 260);
+    sceneCtx.closePath();
+    sceneCtx.fill();
+  }
+  sceneCtx.restore();
+}
+
+// how far into "everyone is dancing" we are: 0 before the ball lands, 1 mid-party
+function partyDanceStrength(elapsed) {
+  if (elapsed == null) return 0;
+  const inRamp = Math.min(1, elapsed / PARTY_DROP_MS);
+  const liftStart = PARTY_MS - PARTY_LIFT_MS;
+  const outRamp = elapsed > liftStart ? Math.max(0, 1 - (elapsed - liftStart) / PARTY_LIFT_MS) : 1;
+  return Math.min(inRamp, outRamp);
+}
+
+const partyBob = (t, seed) => -Math.round(Math.abs(Math.sin(t / 150 + seed)) * 3);
+
+function drawDanceArms(x, y, w, color, t, seed) {
+  const up = Math.sin(t / 150 + seed) > 0;
+  scenePx(x - 2, up ? y : y + 4, 2, 4, color);
+  scenePx(x + w, up ? y + 4 : y, 2, 4, color);
+}
+
+function drawSceneRoom(t, ambience) {
   // no walls or floor fill — the site's own background shows through; just
   // string a few warm hanging lights across the open space above the furniture
   [45, 120, 220].forEach((lx, i) => {
     scenePx(lx, 0, 1, 15, SCENE_COLORS.lightCord);
-    const glow = 0.65 + 0.35 * Math.sin(t / 1300 + i * 1.4);
+    const flicker = 0.65 + 0.35 * Math.sin(t / 1300 + i * 1.4);
+    // lamps burn brighter the darker it is outside
+    const glow = Math.min(1, flicker * (0.45 + ambience.light * 0.75));
     sceneCtx.fillStyle = `rgba(${SCENE_COLORS.lightGlow},${glow.toFixed(2)})`;
     sceneCtx.fillRect(lx - 2, 15, 5, 4);
   });
 }
 
-function drawSceneCounter(t) {
+function drawSceneCounter(t, dance = 0) {
   // shelf/backsplash — kept short so the barista stands out in clear space to its right
   scenePx(8, 124, 56, 30, SCENE_COLORS.counterShelf);
   for (let row = 0; row < 2; row++) {
@@ -226,13 +427,19 @@ function drawSceneCounter(t) {
   sceneCtx.fillRect(29, 146, 2, 2);
 
   // barista behind the counter (torso only — counter front hides the rest)
-  scenePx(52, 124, 6, 2, SCENE_COLORS.machineBody); // hair, dark for a clear silhouette top
-  scenePx(52, 126, 6, 6, SCENE_COLORS.skin);
-  scenePx(50, 132, 10, 22, SCENE_COLORS.apron);
-  scenePx(59, 146, 4, 4, SCENE_COLORS.mug);
-  scenePx(60, 147, 2, 2, SCENE_COLORS.coffee);
-  const wipeFrame = Math.floor(t / 300) % 2;
-  scenePx(wipeFrame === 0 ? 58 : 61, 145, 2, 2, SCENE_COLORS.cloth);
+  const bob = dance > 0 ? partyBob(t, 0) * dance : 0;
+  scenePx(52, 124 + bob, 6, 2, SCENE_COLORS.machineBody); // hair, dark for a clear silhouette top
+  scenePx(52, 126 + bob, 6, 6, SCENE_COLORS.skin);
+  scenePx(50, 132 + bob, 10, 22, SCENE_COLORS.apron);
+  if (dance > 0) {
+    drawDanceArms(50, 134 + bob, 10, SCENE_COLORS.apron, t, 0);
+  } else {
+    // still wiping down the same mug he was wiping an hour ago
+    scenePx(59, 146, 4, 4, SCENE_COLORS.mug);
+    scenePx(60, 147, 2, 2, SCENE_COLORS.coffee);
+    const wipeFrame = Math.floor(t / 300) % 2;
+    scenePx(wipeFrame === 0 ? 58 : 61, 145, 2, 2, SCENE_COLORS.cloth);
+  }
 
   // counter top + front (drawn last so it hides the barista's lower half)
   scenePx(4, 154, 64, 2, SCENE_COLORS.counterTop);
@@ -251,24 +458,29 @@ function drawSceneTable(cx) {
   drawSceneCup(cx, topY);
 }
 
-function drawSeatedPerson(cx, colors) {
+function drawSeatedPerson(cx, colors, t = 0, dance = 0) {
   const seatY = FLOOR_Y - 8;
   scenePx(cx - 4, seatY, 8, 8, SCENE_COLORS.chairWood);
-  scenePx(cx - 3, seatY - 15, 6, 6, colors.headColor);
-  scenePx(cx - 4, seatY - 9, 8, 9, colors.bodyColor);
+  const bob = dance > 0 ? partyBob(t, cx) * dance : 0;
+  scenePx(cx - 3, seatY - 15 + bob, 6, 6, colors.headColor);
+  scenePx(cx - 4, seatY - 9 + bob, 8, 9, colors.bodyColor);
+  if (dance > 0) drawDanceArms(cx - 4, seatY - 7 + bob, 8, colors.bodyColor, t, cx);
 }
 
-function drawSceneJukebox(t) {
-  scenePx(219, FLOOR_Y - 30, 16, 30, SCENE_COLORS.jukeboxTrim);
-  scenePx(221, FLOOR_Y - 28, 12, 26, SCENE_COLORS.jukeboxBody);
-  scenePx(222, FLOOR_Y - 34, 10, 5, SCENE_COLORS.jukeboxTrim);
-  scenePx(223, FLOOR_Y - 24, 8, 12, SCENE_COLORS.jukeboxPanelA);
-  const blinkA = Math.sin(t / 400) > 0;
-  const blinkB = Math.sin(t / 400 + 2) > 0;
-  const blinkC = Math.sin(t / 400 + 4) > 0;
-  scenePx(224, FLOOR_Y - 22, 2, 2, blinkA ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
-  scenePx(227, FLOOR_Y - 22, 2, 2, blinkB ? SCENE_COLORS.jukeboxPanelC : SCENE_COLORS.jukeboxTrim);
-  scenePx(230, FLOOR_Y - 22, 2, 2, blinkC ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
+function drawSceneJukebox(t, dance = 0) {
+  // the whole cabinet rocks along once the party starts
+  const shake = dance > 0 ? Math.round(Math.sin(t / 110) * 1.5 * dance) : 0;
+  scenePx(219 + shake, FLOOR_Y - 30, 16, 30, SCENE_COLORS.jukeboxTrim);
+  scenePx(221 + shake, FLOOR_Y - 28, 12, 26, SCENE_COLORS.jukeboxBody);
+  scenePx(222 + shake, FLOOR_Y - 34, 10, 5, SCENE_COLORS.jukeboxTrim);
+  scenePx(223 + shake, FLOOR_Y - 24, 8, 12, SCENE_COLORS.jukeboxPanelA);
+  const rate = dance > 0 ? 130 : 400;
+  const blinkA = Math.sin(t / rate) > 0;
+  const blinkB = Math.sin(t / rate + 2) > 0;
+  const blinkC = Math.sin(t / rate + 4) > 0;
+  scenePx(224 + shake, FLOOR_Y - 22, 2, 2, blinkA ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
+  scenePx(227 + shake, FLOOR_Y - 22, 2, 2, blinkB ? SCENE_COLORS.jukeboxPanelC : SCENE_COLORS.jukeboxTrim);
+  scenePx(230 + shake, FLOOR_Y - 22, 2, 2, blinkC ? SCENE_COLORS.jukeboxPanelB : SCENE_COLORS.jukeboxTrim);
 }
 
 // ---- particles: coffee steam (multiple cups) + jukebox musical notes ----
@@ -306,8 +518,8 @@ function drawSceneSteam() {
 let sceneNotes = [];
 let lastNoteSpawn = 0;
 
-function updateSceneNotes(t, dt) {
-  if (t - lastNoteSpawn > 900) {
+function updateSceneNotes(t, dt, dance = 0) {
+  if (t - lastNoteSpawn > (dance > 0 ? 220 : 900)) {
     lastNoteSpawn = t;
     sceneNotes.push({ x: 227, y: FLOOR_Y - 35, age: 0 });
   }
@@ -335,7 +547,8 @@ const scenePeople = [
   { x: 200, dir: -1, speed: 8, minX: 145, maxX: 218, bodyColor: '#4a6b7a', headColor: '#d9b98f', shoeColor: '#241b14' },
 ];
 
-function updateScenePeople(dt) {
+function updateScenePeople(dt, dance = 0) {
+  if (dance > 0) return; // nobody's going anywhere, they're dancing
   scenePeople.forEach(p => {
     p.x += p.dir * p.speed * dt / 1000;
     if (p.x > p.maxX) { p.x = p.maxX; p.dir = -1; }
@@ -343,19 +556,23 @@ function updateScenePeople(dt) {
   });
 }
 
-function drawScenePerson(p, t) {
+function drawScenePerson(p, t, dance = 0) {
   const x = Math.round(p.x);
-  const y = FLOOR_Y - 18;
-  const frame = Math.floor(t / 220) % 2;
+  const baseY = FLOOR_Y - 18;
+  const bob = dance > 0 ? partyBob(t, p.x) * dance : 0;
+  const y = baseY + bob;
   scenePx(x + 1, y, 6, 5, p.headColor);
   scenePx(x, y + 5, 8, 9, p.bodyColor);
-  const step = p.dir > 0 ? 1 : -1;
+  if (dance > 0) drawDanceArms(x, y + 6, 8, p.bodyColor, t, p.x);
+  // feet stay planted on the floor while dancing, so only the body bounces
+  const frame = Math.floor(t / (dance > 0 ? 150 : 220)) % 2;
+  const step = dance > 0 ? (frame === 0 ? 1 : -1) : (p.dir > 0 ? 1 : -1);
   if (frame === 0) {
-    scenePx(x + 1, y + 14, 2, 4, p.shoeColor);
-    scenePx(x + 5, y + 14, 2, 4, p.shoeColor);
+    scenePx(x + 1, baseY + 14, 2, 4, p.shoeColor);
+    scenePx(x + 5, baseY + 14, 2, 4, p.shoeColor);
   } else {
-    scenePx(x + 1 + step, y + 14, 2, 4, p.shoeColor);
-    scenePx(x + 5 - step, y + 14, 2, 4, p.shoeColor);
+    scenePx(x + 1 + step, baseY + 14, 2, 4, p.shoeColor);
+    scenePx(x + 5 - step, baseY + 14, 2, 4, p.shoeColor);
   }
 }
 
@@ -386,21 +603,43 @@ function sceneFrame(t) {
   const dt = Math.min(t - sceneLastT, 60);
   sceneLastT = t;
 
+  const partyElapsed = getPartyElapsed();
+  const dance = partyDanceStrength(partyElapsed);
+  const ambience = getAmbience();
+
   updateSceneSteam(t, dt);
-  updateSceneNotes(t, dt);
-  updateScenePeople(dt);
+  updateSceneNotes(t, dt, dance);
+  updateScenePeople(dt, dance);
 
   sceneCtx.clearRect(0, 0, SCENE_W, SCENE_H);
-  drawSceneRoom(t);
-  drawSceneCounter(t);
+  drawSceneRoom(t, ambience);
+  drawSceneCounter(t, dance);
   drawSceneTable(95);
-  drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' });
+  drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' }, t, dance);
   drawSceneTable(150);
   drawSceneTable(205);
-  drawSceneJukebox(t);
+  drawSceneJukebox(t, dance);
   drawSceneSteam();
   drawSceneNotes();
-  scenePeople.forEach(p => drawScenePerson(p, t));
+  scenePeople.forEach(p => drawScenePerson(p, t, dance));
+  if (partyElapsed != null) drawDiscoBall(t, partyElapsed);
+
+  // tint only the pixels we actually drew, so the page background stays untouched
+  sceneCtx.save();
+  sceneCtx.globalCompositeOperation = 'source-atop';
+  if (dance > 0) {
+    const hue = Math.round((t / 6) % 360);
+    sceneCtx.fillStyle = `hsla(${hue},70%,55%,${(0.30 * dance).toFixed(3)})`;
+    sceneCtx.fillRect(0, 0, SCENE_W, SCENE_H);
+  }
+  const [r, g, b] = ambience.tint;
+  const ambientAlpha = ambience.alpha * (1 - dance * 0.88);
+  sceneCtx.fillStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${ambientAlpha.toFixed(3)})`;
+  sceneCtx.fillRect(0, 0, SCENE_W, SCENE_H);
+  sceneCtx.restore();
+
+  // beams are light in the air, so they go over everything and ignore the tint
+  if (partyElapsed != null && dance > 0) drawPartyBeams(t, partyElapsed, dance);
 
   sceneRafId = requestAnimationFrame(sceneFrame);
 }
@@ -493,8 +732,71 @@ function normalizeUrl(raw) {
   }
 }
 
+/* ---------------- tags ---------------- */
+// "a, b ,, A" -> ["a","b"] — trimmed, lowercased, de-duped, capped so a card stays readable
+function parseTags(raw) {
+  if (!raw) return [];
+  const seen = new Set();
+  return raw.split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s && s.length <= 24 && !seen.has(s) && seen.add(s))
+    .slice(0, 6);
+}
+
+const tagFilters = { wishlist: null, links: null };
+
+function buildTagChips(item) {
+  if (!item.tags || !item.tags.length) return null;
+  const row = document.createElement('div');
+  row.className = 'tag-row';
+  item.tags.forEach(tag => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = tag;
+    row.append(chip);
+  });
+  return row;
+}
+
+function renderTagFilter(kind, storeKey, rerender) {
+  const el = document.getElementById(`${kind}TagFilter`);
+  if (!el) return;
+  const counts = new Map();
+  state[storeKey].forEach(item => (item.tags || []).forEach(tag => counts.set(tag, (counts.get(tag) || 0) + 1)));
+
+  el.innerHTML = '';
+  if (!counts.size) {
+    el.classList.remove('show');
+    return;
+  }
+  el.classList.add('show');
+
+  const active = tagFilters[kind];
+  const mkBtn = (label, tag) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tag-filter-btn' + (active === tag ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      tagFilters[kind] = active === tag ? null : tag;
+      rerender();
+    });
+    return btn;
+  };
+
+  el.append(mkBtn('All', null));
+  [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .forEach(([tag, n]) => el.append(mkBtn(`${tag} · ${n}`, tag)));
+}
+
+const matchesTagFilter = (kind, item) => {
+  const active = tagFilters[kind];
+  return !active || (item.tags || []).includes(active);
+};
+
 /* ---------------- generic composer (events / memories / wishlist) ---------------- */
-function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
+function wireComposer(kind, storeKey, { hasLink = false, hasTags = false, render } = {}) {
   const openBtn = document.querySelector(`[data-open="${kind}"]`);
   const composer = document.getElementById(`composer-${kind}`);
   const cancelBtn = document.querySelector(`[data-cancel="${kind}"]`);
@@ -502,6 +804,7 @@ function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
   const titleInput = document.getElementById(`${kind}-title`);
   const descInput = document.getElementById(`${kind}-desc`);
   const linkInput = hasLink ? document.getElementById(`${kind}-link`) : null;
+  const tagsInput = hasTags ? document.getElementById(`${kind}-tags`) : null;
 
   function closeComposer() {
     composer.classList.remove('open');
@@ -509,6 +812,7 @@ function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
     titleInput.value = '';
     descInput.value = '';
     if (linkInput) { linkInput.value = ''; linkInput.style.borderColor = ''; }
+    if (tagsInput) tagsInput.value = '';
   }
 
   openBtn.addEventListener('click', () => {
@@ -536,15 +840,16 @@ function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
       }
     }
 
+    const tags = tagsInput ? parseTags(tagsInput.value) : [];
     closeComposer();
-    const item = { id: uid(), title, desc, link, createdAt: Date.now() };
+    const item = { id: uid(), title, desc, link, tags, createdAt: Date.now() };
     const ok = await fsSetItem(storeKey, item);
     if (ok) flashSaved();
     else flashError('Could not save — check your connection');
   }
 
   saveBtn.addEventListener('click', commit);
-  [titleInput, descInput, linkInput].filter(Boolean).forEach(el => {
+  [titleInput, descInput, linkInput, tagsInput].filter(Boolean).forEach(el => {
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
       if (e.key === 'Escape') closeComposer();
@@ -556,6 +861,9 @@ function wireComposer(kind, storeKey, { hasLink = false, render } = {}) {
 function buildEntryCard(item, extraClass, onDelete) {
   const card = document.createElement('div');
   card.className = extraClass ? `card ${extraClass}` : 'card';
+  card.dataset.id = item.id;
+  if (item.mood) card.style.setProperty('--mood', moodColor(item.mood));
+  card.classList.toggle('has-mood', !!item.mood);
 
   const top = document.createElement('div');
   top.className = 'card-top';
@@ -587,6 +895,9 @@ function buildEntryCard(item, extraClass, onDelete) {
   p.textContent = item.desc || '';
   if (item.desc) card.append(p);
 
+  const tagRow = buildTagChips(item);
+  if (tagRow) card.append(tagRow);
+
   const meta = document.createElement('div');
   meta.className = 'meta';
   meta.textContent = fmtDate(item.createdAt);
@@ -597,7 +908,8 @@ function buildEntryCard(item, extraClass, onDelete) {
 function renderList(kind, storeKey) {
   const listEl = document.getElementById(`list-${kind}`);
   const emptyEl = document.getElementById(`empty-${kind}`);
-  const items = state[storeKey];
+  if (kind in tagFilters) renderTagFilter(kind, storeKey, () => renderList(kind, storeKey));
+  const items = state[storeKey].filter(item => !(kind in tagFilters) || matchesTagFilter(kind, item));
   listEl.innerHTML = '';
   emptyEl.classList.toggle('show', items.length === 0);
 
@@ -658,6 +970,14 @@ function renderMemories() {
 
 /* ---------------- memory thumb: photo, emoji, or nothing, picked from a small corner popover ---------------- */
 const MEMORY_EMOJIS = ['🎉', '✈️', '🏖️', '🎂', '📷', '🎵', '❤️', '🍕', '🌟', '🎓', '🐾', '🌅', '🎄', '🥳'];
+const MEMORY_MOODS = [
+  { id: 'joy', label: 'Joy', color: '#e8b563' },
+  { id: 'calm', label: 'Calm', color: '#5a8a7a' },
+  { id: 'love', label: 'Love', color: '#c96a7a' },
+  { id: 'adventure', label: 'Adventure', color: '#4a6b7a' },
+  { id: 'bittersweet', label: 'Bittersweet', color: '#8a5a3b' },
+];
+const moodColor = (id) => (MEMORY_MOODS.find(m => m.id === id) || {}).color || 'transparent';
 let closeOpenMemoryPopover = null;
 
 function buildMemoryThumb(item) {
@@ -733,15 +1053,32 @@ function openMemoryPopover(wrap, item) {
   });
   uploadLabel.append(fileInput);
 
-  popover.append(grid, uploadLabel);
+  // mood: tints the card's edge so the timeline reads at a glance
+  const moodRow = document.createElement('div');
+  moodRow.className = 'mood-row';
+  MEMORY_MOODS.forEach(mood => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mood-dot' + (item.mood === mood.id ? ' active' : '');
+    btn.style.setProperty('--mood', mood.color);
+    btn.title = mood.label;
+    btn.setAttribute('aria-label', mood.label);
+    btn.addEventListener('click', () => {
+      fsSetItem('memories', { ...item, mood: item.mood === mood.id ? null : mood.id });
+      close();
+    });
+    moodRow.append(btn);
+  });
 
-  if (item.photo || item.emoji) {
+  popover.append(grid, moodRow, uploadLabel);
+
+  if (item.photo || item.emoji || item.mood) {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'popover-remove';
-    removeBtn.textContent = 'Remove';
+    removeBtn.textContent = 'Clear';
     removeBtn.addEventListener('click', () => {
-      fsSetItem('memories', { ...item, photo: null, emoji: null });
+      fsSetItem('memories', { ...item, photo: null, emoji: null, mood: null });
       close();
     });
     popover.append(removeBtn);
@@ -764,7 +1101,7 @@ function openMemoryPopover(wrap, item) {
 
 wireComposer('events', 'events');
 wireComposer('memories', 'memories', { render: renderMemories });
-wireComposer('wishlist', 'wishlist', { hasLink: true });
+wireComposer('wishlist', 'wishlist', { hasLink: true, hasTags: true });
 renderList('events', 'events');
 renderMemories();
 renderList('wishlist', 'wishlist');
@@ -774,6 +1111,7 @@ renderList('wishlist', 'wishlist');
 function buildLinkCard(item, i, onDelete) {
   const card = document.createElement('div');
   card.className = 'card link-card';
+  card.dataset.id = item.id;
   card.style.animationDelay = Math.min(i * 40, 300) + 'ms';
 
   const hit = document.createElement('a');
@@ -838,13 +1176,16 @@ function buildLinkCard(item, i, onDelete) {
   body.append(favicon, info);
 
   card.append(hit, thumb, delBtn, body);
+  const tagRow = buildTagChips(item);
+  if (tagRow) card.append(tagRow);
   return card;
 }
 
 function renderLinks() {
   const listEl = document.getElementById('list-links');
   const emptyEl = document.getElementById('empty-links');
-  const items = state.links;
+  renderTagFilter('links', 'links', renderLinks);
+  const items = state.links.filter(item => matchesTagFilter('links', item));
   listEl.innerHTML = '';
   emptyEl.classList.toggle('show', items.length === 0);
 
@@ -856,6 +1197,7 @@ function renderLinks() {
 
 const linkForm = document.getElementById('linkForm');
 const linkInput = document.getElementById('linkInput');
+const linkTagsInput = document.getElementById('linkTagsInput');
 linkForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const href = normalizeUrl(linkInput.value);
@@ -866,8 +1208,10 @@ linkForm.addEventListener('submit', async (e) => {
     return;
   }
   const domain = new URL(href).hostname.replace(/^www\./, '');
+  const tags = parseTags(linkTagsInput.value);
   linkInput.value = '';
-  const ok = await fsSetItem('links', { id: uid(), url: href, domain, createdAt: Date.now() });
+  linkTagsInput.value = '';
+  const ok = await fsSetItem('links', { id: uid(), url: href, domain, tags, createdAt: Date.now() });
   if (ok) flashSaved();
   else flashError('Could not save — check your connection');
 });
@@ -998,6 +1342,147 @@ wireSizeToggle('decorSizeToggle', document.getElementById('list-decor'), 'decorS
 wireSizeToggle('linksSizeToggle', document.getElementById('list-links'), 'linksSize', state.linksSize);
 
 renderDecor();
+
+/* ================= global search ================= */
+const searchOverlay = document.getElementById('searchOverlay');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+const searchBtn = document.getElementById('searchBtn');
+
+const SEARCH_SECTIONS = [
+  { key: 'events', view: 'events', label: 'Events', fields: i => [i.title, i.desc] },
+  { key: 'memories', view: 'memories', label: 'Memories', fields: i => [i.title, i.desc] },
+  { key: 'wishlist', view: 'wishlist', label: 'Wishlist', fields: i => [i.title, i.desc, ...(i.tags || [])] },
+  { key: 'links', view: 'links', label: 'Links', fields: i => [i.domain, i.url, ...(i.tags || [])] },
+  { key: 'decor', view: 'decor', label: 'Decor', fields: i => [i.domain, i.url] },
+];
+
+function openSearch() {
+  searchOverlay.classList.add('show');
+  searchInput.value = '';
+  runSearch('');
+  searchInput.focus();
+}
+function closeSearch() {
+  searchOverlay.classList.remove('show');
+}
+
+// pulls the matching line out of the notes blob so the result shows real context
+function noteMatches(q) {
+  if (!state.notes) return [];
+  return state.notes.split('\n')
+    .map((line, idx) => ({ line: line.trim(), idx }))
+    .filter(l => l.line && l.line.toLowerCase().includes(q))
+    .slice(0, 5);
+}
+
+function jumpToResult(view, id) {
+  closeSearch();
+  activateTab(view);
+  if (!id) return;
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`#view-${view} [data-id="${CSS.escape(id)}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('search-hit');
+    setTimeout(() => card.classList.remove('search-hit'), 1600);
+  });
+}
+
+function addResultRow(parent, { label, sub, view, id }) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'search-result';
+  const main = document.createElement('span');
+  main.className = 'search-result-main';
+  main.textContent = label;
+  const meta = document.createElement('span');
+  meta.className = 'search-result-sub';
+  meta.textContent = sub;
+  row.append(main, meta);
+  row.addEventListener('click', () => jumpToResult(view, id));
+  parent.append(row);
+}
+
+function runSearch(raw) {
+  const q = raw.trim().toLowerCase();
+  searchResults.innerHTML = '';
+
+  if (!q) {
+    const hint = document.createElement('div');
+    hint.className = 'search-hint';
+    hint.textContent = 'Type to search across everything you\'ve saved.';
+    searchResults.append(hint);
+    return;
+  }
+
+  let total = 0;
+
+  const noteHits = noteMatches(q);
+  if (noteHits.length) {
+    const group = document.createElement('div');
+    group.className = 'search-group';
+    const h = document.createElement('div');
+    h.className = 'search-group-label';
+    h.textContent = 'Notes';
+    group.append(h);
+    noteHits.forEach(hit => {
+      addResultRow(group, { label: hit.line.slice(0, 90), sub: `line ${hit.idx + 1}`, view: 'notes', id: null });
+      total++;
+    });
+    searchResults.append(group);
+  }
+
+  SEARCH_SECTIONS.forEach(section => {
+    const hits = (state[section.key] || []).filter(item =>
+      section.fields(item).filter(Boolean).some(f => String(f).toLowerCase().includes(q)));
+    if (!hits.length) return;
+    const group = document.createElement('div');
+    group.className = 'search-group';
+    const h = document.createElement('div');
+    h.className = 'search-group-label';
+    h.textContent = section.label;
+    group.append(h);
+    hits.slice(0, 8).forEach(item => {
+      addResultRow(group, {
+        label: item.title || item.domain || 'Untitled',
+        sub: item.desc ? item.desc.slice(0, 70) : (item.tags || []).join(' · ') || fmtDate(item.createdAt),
+        view: section.view,
+        id: item.id,
+      });
+      total++;
+    });
+    searchResults.append(group);
+  });
+
+  if (!total) {
+    const none = document.createElement('div');
+    none.className = 'search-hint';
+    none.textContent = `Nothing matches “${raw.trim()}”.`;
+    searchResults.append(none);
+  }
+}
+
+searchBtn.addEventListener('click', openSearch);
+searchInput.addEventListener('input', () => runSearch(searchInput.value));
+searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+
+document.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (e.key === 'Escape' && searchOverlay.classList.contains('show')) {
+    closeSearch();
+    return;
+  }
+  if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    openSearch();
+    return;
+  }
+  if (e.key === '/' && !typing && !appShell.classList.contains('hidden')) {
+    e.preventDefault();
+    openSearch();
+  }
+});
 
 /* ================= Firebase sync ================= */
 
