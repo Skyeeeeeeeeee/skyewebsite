@@ -146,8 +146,8 @@ const SCENE_HOTSPOTS = [
   {
     id: 'regular',
     name: 'the regular',
-    bbox: { x: 81, y: 154, w: 10, h: 24 },
-    outline: 'M83,155 L89,155 L89,161 L90,161 L90,178 L82,178 L82,161 L83,161 Z',
+    bbox: { x: 72, y: 154, w: 20, h: 24 },
+    outline: 'M82,154 L88,154 L88,160 L89,160 L89,171 L78,171 L78,178 L72,178 L72,176 L74,176 L74,171 L75,171 L75,167 L81,167 L81,160 L82,160 Z',
     lines: ['this is my table', 'been here since open', 'shh, i’m reading', 'best seat in the shop'],
   },
   {
@@ -461,13 +461,24 @@ function drawSceneTable(cx) {
   drawSceneCup(cx, topY);
 }
 
+// sits facing left, legs off the front of the chair: thigh forward, shin down to
+// the floor. bob is negative (upward), so the shin stretches to stay attached.
 function drawSeatedPerson(cx, colors, t = 0, dance = 0) {
-  const seatY = FLOOR_Y - 8;
-  scenePx(cx - 4, seatY, 8, 8, SCENE_COLORS.chairWood);
   const bob = dance > 0 ? partyBob(t, cx) * dance : 0;
-  scenePx(cx - 3, seatY - 15 + bob, 6, 6, colors.headColor);
-  scenePx(cx - 4, seatY - 9 + bob, 8, 9, colors.bodyColor);
-  if (dance > 0) drawDanceArms(cx - 4, seatY - 7 + bob, 8, colors.bodyColor, t, cx);
+
+  // chair first so the sitter layers on top; it sits lower than the table top and
+  // in the darker wood, otherwise seat and table merge into one long bar
+  scenePx(cx + 5, 157, 3, 14, SCENE_COLORS.chairWood);  // back post
+  scenePx(cx - 6, 171, 11, 2, SCENE_COLORS.chairWood);  // seat
+  scenePx(cx + 3, 173, 2, 5, SCENE_COLORS.chairWood);   // back leg
+  scenePx(cx - 5, 173, 2, 5, SCENE_COLORS.chairWood);   // front leg
+
+  scenePx(cx - 10, 171 + bob, 4, 7 - bob, colors.legColor); // shin
+  scenePx(cx - 9, 167 + bob, 8, 4, colors.legColor);        // thigh
+  scenePx(cx - 12, 176, 6, 2, colors.shoeColor);            // foot
+  scenePx(cx - 3, 160 + bob, 8, 11, colors.bodyColor);      // torso
+  scenePx(cx - 2, 154 + bob, 6, 6, colors.headColor);       // head
+  if (dance > 0) drawDanceArms(cx - 3, 162 + bob, 8, colors.bodyColor, t, cx);
 }
 
 function drawSceneJukebox(t, dance = 0) {
@@ -545,7 +556,8 @@ function drawSceneNotes() {
 
 // ---- customers walking the floor, sized clearly bigger than the furniture ----
 const scenePeople = [
-  { x: 70, dir: 1, speed: 10, minX: 66, maxX: 140, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
+  // starts right of the seated regular so it never parks on top of him
+  { x: 110, dir: 1, speed: 10, minX: 104, maxX: 142, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
   { x: 200, dir: -1, speed: 8, minX: 145, maxX: 218, bodyColor: '#4a6b7a', headColor: '#d9b98f', shoeColor: '#241b14' },
 ];
 
@@ -621,7 +633,7 @@ function sceneFrame(t) {
   drawSceneRoom(t, ambience);
   drawSceneCounter(t, dance);
   drawSceneTable(95);
-  drawSeatedPerson(86, { headColor: '#e8d9c4', bodyColor: '#5c3a29' }, t, dance);
+  drawSeatedPerson(84, { headColor: '#e8d9c4', bodyColor: '#5c3a29', legColor: '#3f5a66', shoeColor: '#241b14' }, t, dance);
   drawSceneTable(150);
   drawSceneTable(205);
   drawSceneJukebox(t, dance);
