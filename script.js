@@ -146,8 +146,8 @@ const SCENE_HOTSPOTS = [
   {
     id: 'regular',
     name: 'the regular',
-    bbox: { x: 78, y: 160, w: 16, h: 18 },
-    outline: 'M81,160 L87,160 L87,165 L88,165 L88,172 L94,172 L94,178 L92,178 L92,174 L91,174 L91,178 L89,178 L89,174 L88,174 L80,174 L80,165 L81,165 Z',
+    bbox: { x: 80, y: 160, w: 8, h: 18 },
+    outline: 'M81,160 L87,160 L87,165 L88,165 L88,174 L87,174 L87,178 L85,178 L85,174 L83,174 L83,178 L81,178 L81,174 L80,174 L80,165 L81,165 Z',
     lines: ['this is my table', 'been here since open', 'shh, i’m reading', 'best seat in the shop'],
   },
   {
@@ -267,7 +267,6 @@ const SCENE_COLORS = {
   coffee: '#3a2416',
   tableWood: '#6e4632',
   tableLeg: '#4a2f21',
-  chairWood: '#4a2f21',
   jukeboxBody: '#4a2f21',
   jukeboxTrim: '#6e4632',
   jukeboxPanelA: '#e8b563',
@@ -461,27 +460,6 @@ function drawSceneTable(cx) {
   drawSceneCup(cx, topY);
 }
 
-// same head/body blocks as the walkers so everyone stays the same size; he just
-// faces right toward his table with his legs folded out in front of the stool.
-// bob is negative (upward), so the shins stretch to keep his feet on the floor.
-function drawSeatedPerson(cx, colors, t = 0, dance = 0) {
-  const bob = dance > 0 ? partyBob(t, cx) * dance : 0;
-
-  // backless stool, tucked under him and clear of the legs
-  scenePx(cx - 6, 174, 10, 2, SCENE_COLORS.chairWood);
-  scenePx(cx - 5, 176, 2, 2, SCENE_COLORS.chairWood);
-  scenePx(cx + 1, 176, 2, 2, SCENE_COLORS.chairWood);
-
-  // stick legs at the walkers' 2px gauge: one thigh forward, two shins down
-  scenePx(cx + 4, 172 + bob, 6, 2, colors.shoeColor);
-  scenePx(cx + 5, 174 + bob, 2, 4 - bob, colors.shoeColor);
-  scenePx(cx + 8, 174 + bob, 2, 4 - bob, colors.shoeColor);
-
-  scenePx(cx - 4, 165 + bob, 8, 9, colors.bodyColor);
-  scenePx(cx - 3, 160 + bob, 6, 5, colors.headColor);
-  if (dance > 0) drawDanceArms(cx - 4, 167 + bob, 8, colors.bodyColor, t, cx);
-}
-
 function drawSceneJukebox(t, dance = 0) {
   // the whole cabinet rocks along once the party starts
   const shake = dance > 0 ? Math.round(Math.sin(t / 110) * 1.5 * dance) : 0;
@@ -557,7 +535,9 @@ function drawSceneNotes() {
 
 // ---- customers walking the floor, sized clearly bigger than the furniture ----
 const scenePeople = [
-  // starts right of the seated regular so it never parks on top of him
+  // the regular: speed 0 keeps him parked at his table, still keeps his feet planted
+  { x: 80, dir: 1, speed: 0, still: true, minX: 80, maxX: 80, bodyColor: '#6b4230', headColor: '#e8d9c4', shoeColor: '#2c2018' },
+  // starts right of the regular so it never parks on top of him
   { x: 110, dir: 1, speed: 10, minX: 104, maxX: 142, bodyColor: '#c9976a', headColor: '#e8d9c4', shoeColor: '#2c2018' },
   { x: 200, dir: -1, speed: 8, minX: 145, maxX: 218, bodyColor: '#4a6b7a', headColor: '#d9b98f', shoeColor: '#241b14' },
 ];
@@ -580,7 +560,7 @@ function drawScenePerson(p, t, dance = 0) {
   scenePx(x, y + 5, 8, 9, p.bodyColor);
   if (dance > 0) drawDanceArms(x, y + 6, 8, p.bodyColor, t, p.x);
   // feet stay planted on the floor while dancing, so only the body bounces
-  const frame = Math.floor(t / (dance > 0 ? 150 : 220)) % 2;
+  const frame = p.still && dance === 0 ? 0 : Math.floor(t / (dance > 0 ? 150 : 220)) % 2;
   const step = dance > 0 ? (frame === 0 ? 1 : -1) : (p.dir > 0 ? 1 : -1);
   if (frame === 0) {
     scenePx(x + 1, baseY + 14, 2, 4, p.shoeColor);
@@ -634,7 +614,6 @@ function sceneFrame(t) {
   drawSceneRoom(t, ambience);
   drawSceneCounter(t, dance);
   drawSceneTable(95);
-  drawSeatedPerson(84, { headColor: '#e8d9c4', bodyColor: '#6b4230', shoeColor: '#2c2018' }, t, dance);
   drawSceneTable(150);
   drawSceneTable(205);
   drawSceneJukebox(t, dance);
