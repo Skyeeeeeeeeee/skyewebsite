@@ -1309,8 +1309,171 @@ h1, h2, .brand-name, .tab span, .new-btn, .btn-solid, .btn-ghost {
 .mood-dot:hover { transform: scale(1.16); }
 .mood-dot.active { border-color: var(--text); }
 
+/* ---------------- room (3D) ---------------- */
+.room-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 264px;
+  gap: 18px;
+  align-items: start;
+}
+.room-stage {
+  position: relative;
+  height: min(68vh, 640px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(226,214,200,0.07), transparent 60%),
+    linear-gradient(180deg, #232120, #1b1a19);
+}
+.room-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.room-stage canvas:active { cursor: grabbing; }
+.room-viewbar {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.room-view-btn {
+  background: rgba(27, 26, 25, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.76rem;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.room-view-btn:hover { color: var(--text); background: rgba(40, 37, 35, 0.85); }
+.room-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--text-faint);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  pointer-events: none;
+}
+.room-status.hidden { display: none; }
+
+.room-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(68vh, 640px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.room-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+.room-group h3 {
+  margin: 0 0 12px;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.room-add-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.room-add-grid button {
+  background: rgba(226,214,200,0.045);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.76rem;
+  padding: 7px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.room-add-grid button:hover {
+  background: rgba(var(--accent-a-rgb), 0.2);
+  border-color: rgba(var(--accent-b-rgb), 0.4);
+  color: var(--text);
+}
+.room-field {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+.room-field:last-of-type { margin-bottom: 0; }
+.room-val { color: var(--text-faint); float: right; }
+.room-field input[type="range"] {
+  width: 100%;
+  margin-top: 7px;
+  accent-color: var(--accent-b);
+}
+.room-field input[type="color"] {
+  width: 100%;
+  height: 28px;
+  margin-top: 7px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: none;
+  cursor: pointer;
+}
+.room-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  margin-top: 7px;
+}
+.room-swatches button {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  border: 1px solid rgba(0,0,0,0.35);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.room-swatches button:hover { transform: scale(1.16); }
+.room-swatches button.active { box-shadow: 0 0 0 2px var(--accent-b); }
+.room-delete, .room-reset {
+  width: 100%;
+  margin-top: 14px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.78rem;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.room-delete:hover { border-color: rgba(201,106,82,0.5); color: var(--danger); }
+.room-reset:hover { border-color: rgba(var(--accent-b-rgb),0.45); color: var(--text); }
+
 /* ---------------- responsive ---------------- */
 @media (max-width: 860px) {
+  .room-shell { grid-template-columns: 1fr; }
+  .room-stage { height: 52vh; }
+  .room-panel { max-height: none; overflow: visible; }
   .topbar { gap: 16px; padding: 0 16px; flex-wrap: wrap; height: auto; padding-top: 12px; padding-bottom: 8px; }
   .save-indicator, .sync-status { display: none; }
   .tabs { order: 3; width: 100%; overflow-x: auto; margin-top: 4px; }

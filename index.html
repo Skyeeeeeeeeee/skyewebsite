@@ -71,6 +71,10 @@
       <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M4.3 17.3 9 12.3l3.1 3.1L15 12l4.7 5.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
       <span>Decor</span>
     </button>
+    <button class="tab" data-view="room">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.8 21 7v10l-9 4.2L3 17V7l9-4.2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 7l9 4.2L21 7M12 11.2V21.2" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Room</span>
+    </button>
     <div class="tab-glow" id="tabGlow"></div>
   </nav>
 
@@ -245,6 +249,71 @@
     <div class="empty" id="empty-decor">
       <div class="empty-icon">✦</div>
       <p>No decor saved yet</p>
+    </div>
+  </section>
+
+  <!-- ROOM (3D visualiser) -->
+  <section class="view" id="view-room">
+    <div class="view-head">
+      <h1>Room</h1>
+      <p>Your room in 3D. Drag to spin, scroll to zoom, shift-drag to pan. Click a piece to move or recolour it.</p>
+    </div>
+
+    <div class="room-shell">
+      <div class="room-stage">
+        <canvas id="roomCanvas"></canvas>
+        <div class="room-viewbar">
+          <button type="button" class="room-view-btn" data-room-view="corner">Corner</button>
+          <button type="button" class="room-view-btn" data-room-view="bed">Bed side</button>
+          <button type="button" class="room-view-btn" data-room-view="door">From door</button>
+          <button type="button" class="room-view-btn" data-room-view="top">Floor plan</button>
+        </div>
+        <div class="room-status" id="roomStatus">Loading 3D…</div>
+      </div>
+
+      <aside class="room-panel">
+        <div class="room-group">
+          <h3>Add a piece</h3>
+          <div class="room-add-grid" id="roomAddGrid"></div>
+        </div>
+
+        <div class="room-group room-selected" id="roomSelected" hidden>
+          <h3><span id="roomSelName">Selected</span></h3>
+          <label class="room-field">Colour
+            <div class="room-swatches" id="roomSwatches"></div>
+          </label>
+          <label class="room-field">Custom
+            <input type="color" id="roomColorInput">
+          </label>
+          <label class="room-field" id="roomRotField">Turn <span class="room-val" id="roomRotVal">0°</span>
+            <input type="range" id="roomRot" min="0" max="355" step="5" value="0">
+          </label>
+          <label class="room-field">Size <span class="room-val" id="roomScaleVal">100%</span>
+            <input type="range" id="roomScale" min="50" max="180" step="5" value="100">
+          </label>
+          <button type="button" class="room-delete" id="roomDelete">Remove piece</button>
+        </div>
+
+        <div class="room-group">
+          <h3>The room</h3>
+          <label class="room-field">Width <span class="room-val" id="roomWVal">10 ft</span>
+            <input type="range" id="roomW" min="6" max="24" step="0.5" value="10">
+          </label>
+          <label class="room-field">Length <span class="room-val" id="roomDVal">12 ft</span>
+            <input type="range" id="roomD" min="6" max="28" step="0.5" value="12">
+          </label>
+          <label class="room-field">Ceiling <span class="room-val" id="roomHVal">8 ft</span>
+            <input type="range" id="roomH" min="7" max="12" step="0.5" value="8">
+          </label>
+          <label class="room-field">Walls
+            <div class="room-swatches" id="roomWallSwatches"></div>
+          </label>
+          <label class="room-field">Carpet
+            <div class="room-swatches" id="roomFloorSwatches"></div>
+          </label>
+          <button type="button" class="room-reset" id="roomReset">Reset to my layout</button>
+        </div>
+      </aside>
     </div>
   </section>
 

@@ -45,6 +45,14 @@ async function setNotes(text) {
     flashError('Could not sync notes');
   }
 }
+async function setRoomDoc(data) {
+  if (!configured || !currentUid) return;
+  try {
+    await setDoc(doc(db, 'users', currentUid, 'meta', 'room'), data);
+  } catch (err) {
+    console.error(err);
+  }
+}
 async function setPref(key, value) {
   if (!configured || !currentUid) return;
   try {
@@ -81,6 +89,7 @@ const state = {
   decor: load('sw_decor', []),
   decorSize: load('sw_decorSize', 'medium'),
   linksSize: load('sw_linksSize', 'medium'),
+  room: load('sw_room', null),
 };
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -657,6 +666,153 @@ function stopPixelScene() {
   if (sceneClockIntervalId) clearInterval(sceneClockIntervalId);
 }
 
+/* ================= room (3D visualiser, lazily loaded) ================= */
+const roomCanvas = document.getElementById('roomCanvas');
+const roomStatus = document.getElementById('roomStatus');
+const roomSelectedEl = document.getElementById('roomSelected');
+let roomApi = null;
+let roomBooting = false;
+let roomSaveTimer = null;
+
+function queueRoomSave(data) {
+  state.room = data;
+  save('sw_room', data);
+  clearTimeout(roomSaveTimer);
+  roomSaveTimer = setTimeout(() => setRoomDoc(data), 600);
+}
+
+function fillSwatches(el, colors, onPick) {
+  el.innerHTML = '';
+  colors.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.style.background = c;
+    b.dataset.color = c;
+    b.title = c;
+    b.addEventListener('click', () => onPick(c));
+    el.append(b);
+  });
+}
+
+function markActiveSwatch(el, color) {
+  el.querySelectorAll('button').forEach(b =>
+    b.classList.toggle('active', (b.dataset.color || '').toLowerCase() === (color || '').toLowerCase()));
+}
+
+async function ensureRoom() {
+  if (roomApi || roomBooting) return roomApi;
+  roomBooting = true;
+  try {
+    const mod = await import('./room.js');
+    const { CATALOG, PALETTE, DEFAULT_ROOM } = mod;
+
+    roomApi = mod.createRoomScene({
+      canvas: roomCanvas,
+      onChange: queueRoomSave,
+      onSelect: (item) => {
+        roomSelectedEl.hidden = !item;
+        if (!item) return;
+        const spec = CATALOG[item.type];
+        document.getElementById('roomSelName').textContent = spec.label;
+        markActiveSwatch(document.getElementById('roomSwatches'), item.color);
+        document.getElementById('roomColorInput').value = item.color;
+        const rot = Math.round(((item.rotY || 0) * 180 / Math.PI + 360) % 360);
+        document.getElementById('roomRot').value = rot;
+        document.getElementById('roomRotVal').textContent = rot + '°';
+        // wall pieces slide along their wall instead of turning freely
+        document.getElementById('roomRotField').hidden = spec.mount === 'wall';
+        const sc = Math.round((item.scale || 1) * 100);
+        document.getElementById('roomScale').value = sc;
+        document.getElementById('roomScaleVal').textContent = sc + '%';
+      },
+    });
+
+    // add-a-piece buttons
+    const addGrid = document.getElementById('roomAddGrid');
+    Object.entries(CATALOG).forEach(([type, spec]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = spec.label;
+      b.addEventListener('click', () => roomApi.addItem(type));
+      addGrid.append(b);
+    });
+
+    fillSwatches(document.getElementById('roomSwatches'), PALETTE, (c) => {
+      roomApi.patchSelected({ color: c });
+      document.getElementById('roomColorInput').value = c;
+    });
+    fillSwatches(document.getElementById('roomWallSwatches'), PALETTE, (c) => {
+      roomApi.setColors({ wallColor: c });
+      markActiveSwatch(document.getElementById('roomWallSwatches'), c);
+    });
+    fillSwatches(document.getElementById('roomFloorSwatches'), PALETTE, (c) => {
+      roomApi.setColors({ floorColor: c });
+      markActiveSwatch(document.getElementById('roomFloorSwatches'), c);
+    });
+
+    document.getElementById('roomColorInput').addEventListener('input', (e) =>
+      roomApi.patchSelected({ color: e.target.value }));
+    document.getElementById('roomRot').addEventListener('input', (e) => {
+      document.getElementById('roomRotVal').textContent = e.target.value + '°';
+      roomApi.patchSelected({ rotY: Number(e.target.value) * Math.PI / 180 });
+    });
+    document.getElementById('roomScale').addEventListener('input', (e) => {
+      document.getElementById('roomScaleVal').textContent = e.target.value + '%';
+      roomApi.patchSelected({ scale: Number(e.target.value) / 100 });
+    });
+    document.getElementById('roomDelete').addEventListener('click', () => roomApi.deleteSelected());
+    document.getElementById('roomReset').addEventListener('click', () => {
+      roomApi.reset();
+      syncRoomPanel(roomApi.getState());
+    });
+
+    [['roomW', 'w', 'roomWVal'], ['roomD', 'd', 'roomDVal'], ['roomH', 'h', 'roomHVal']].forEach(([id, key, valId]) => {
+      document.getElementById(id).addEventListener('input', (e) => {
+        document.getElementById(valId).textContent = e.target.value + ' ft';
+        roomApi.setDims({ [key]: Number(e.target.value) });
+      });
+    });
+
+    document.querySelectorAll('[data-room-view]').forEach(btn => {
+      btn.addEventListener('click', () => roomApi.setView(btn.dataset.roomView));
+    });
+
+    roomApi.setState(state.room || DEFAULT_ROOM(), { keepCamera: false });
+    syncRoomPanel(roomApi.getState());
+    roomStatus.classList.add('hidden');
+  } catch (err) {
+    console.error(err);
+    roomStatus.classList.remove('hidden');
+    roomStatus.textContent = 'Could not load the 3D view — check your connection and refresh.';
+  } finally {
+    roomBooting = false;
+  }
+  return roomApi;
+}
+
+// pushes room state into the panel controls (after load, reset, or a synced change)
+function syncRoomPanel(data) {
+  if (!data) return;
+  const set = (id, valId, v, unit) => {
+    const el = document.getElementById(id);
+    if (el) el.value = v;
+    const lab = document.getElementById(valId);
+    if (lab) lab.textContent = v + unit;
+  };
+  set('roomW', 'roomWVal', data.dims.w, ' ft');
+  set('roomD', 'roomDVal', data.dims.d, ' ft');
+  set('roomH', 'roomHVal', data.dims.h, ' ft');
+  markActiveSwatch(document.getElementById('roomWallSwatches'), data.wallColor);
+  markActiveSwatch(document.getElementById('roomFloorSwatches'), data.floorColor);
+}
+
+function startRoom() {
+  ensureRoom().then(api => api && api.start());
+}
+function stopRoom() {
+  if (roomApi) roomApi.stop();
+}
+
 /* ---------------- tabs ---------------- */
 const tabsEl = document.getElementById('tabs');
 const tabButtons = Array.from(document.querySelectorAll('.tab'));
@@ -678,6 +834,7 @@ function activateTab(name, { skipHash } = {}) {
   if (active) positionGlow(active);
   if (!skipHash) history.replaceState(null, '', '#' + name);
   if (name === 'home') startPixelScene(); else stopPixelScene();
+  if (name === 'room') startRoom(); else stopRoom();
 }
 
 tabButtons.forEach(btn => {
@@ -692,7 +849,7 @@ window.addEventListener('resize', () => {
   if (sceneRunning) resizeScene();
 });
 
-const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'home'];
+const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'room', 'home'];
 const initialView = (location.hash || '').replace('#', '');
 activateTab(validViews.includes(initialView) ? initialView : 'notes', { skipHash: true });
 requestAnimationFrame(() => {
@@ -1601,6 +1758,19 @@ if (!configured) {
       if (document.activeElement !== notesArea) notesArea.value = text;
     }, err => console.error(err));
     unsubscribers.push(unsubNotes);
+
+    const unsubRoom = onSnapshot(doc(db, 'users', uid, 'meta', 'room'), snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      state.room = data;
+      save('sw_room', data);
+      // don't stomp the layout mid-drag; the local copy is already this change
+      if (roomApi && !document.getElementById('view-room').classList.contains('active')) {
+        roomApi.setState(data);
+        syncRoomPanel(data);
+      }
+    }, err => console.error(err));
+    unsubscribers.push(unsubRoom);
 
     const unsubPrefs = onSnapshot(doc(db, 'users', uid, 'meta', 'prefs'), snap => {
       if (!snap.exists()) return;
