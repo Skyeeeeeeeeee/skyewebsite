@@ -19,7 +19,7 @@ export const CATALOG = {
   lamp:       { label: 'Floor lamp',    mount: 'floor', size: [1.2, 5.0, 1.2],  color: '#e0d6c4' },
   closet:     { label: 'Closet mirror', mount: 'wall',  size: [5.0, 7.0, 1.8],  color: '#efece6', atY: 0 },
   door:       { label: 'Door',          mount: 'wall',  size: [3.0, 6.75, 0.35], color: '#efece6', atY: 0 },
-  window:     { label: 'Window',        mount: 'wall',  size: [3.4, 4.0, 0.3],  color: '#efece6', atY: 2.4 },
+  window:     { label: 'Window',        mount: 'wall',  size: [6.0, 4.0, 0.3],  color: '#efece6', atY: 2.4 },
   mirror:     { label: 'Mirror',        mount: 'wall',  size: [2.0, 4.5, 0.16], color: '#8a6f5c', atY: 1.4 },
   tv:         { label: 'TV',            mount: 'wall',  size: [4.0, 2.3, 0.28], color: '#1e1e20', atY: 3.4 },
   poster:     { label: 'Poster',        mount: 'wall',  size: [2.0, 3.0, 0.08], color: '#c9976a', atY: 3.6 },
@@ -52,16 +52,17 @@ export function makeItem(type, patch = {}) {
 /* Their room, as described: full bed in the top-left, door bottom-right, window
    on the wall across from it, closet mirror to the left of the door. */
 export const DEFAULT_ROOM = () => ({
-  dims: { w: 10, d: 12, h: 8 },
+  dims: { w: 13, d: 12, h: 8 },
   wallColor: '#f4f1ec',
   floorColor: '#b6a894',
   items: [
-    makeItem('bed', { x: -2.6, z: -2.7, rotY: 0 }),
-    makeItem('nightstand', { x: 0.6, z: -5.2, rotY: 0 }),
-    makeItem('window', { wall: 'north', along: 3 }),
-    makeItem('door', { wall: 'south', along: 3 }),
-    makeItem('closet', { wall: 'south', along: -1.5 }),
-    makeItem('rug', { x: 1.6, z: 0.6, rotY: 0 }),
+    // headboard against the left wall, so the foot of the bed points at the right wall
+    makeItem('bed', { x: -3.375, z: -3.7, rotY: Math.PI / 2 }),
+    makeItem('nightstand', { x: -5.6, z: -0.5, rotY: 0 }),
+    makeItem('window', { wall: 'north', along: 1.6 }),
+    makeItem('door', { wall: 'south', along: 4.5 }),
+    makeItem('closet', { wall: 'south', along: 0 }),
+    makeItem('rug', { x: 2.5, z: 0.5, rotY: 0 }),
   ],
 });
 
