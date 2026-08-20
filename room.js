@@ -12,8 +12,8 @@ export const CATALOG = {
   nightstand: { label: 'Nightstand',    mount: 'floor', size: [1.6, 2.0, 1.4],  color: '#7a5c46' },
   dresser:    { label: 'Dresser',       mount: 'floor', size: [3.2, 3.0, 1.6],  color: '#7a5c46' },
   desk:       { label: 'Desk',          mount: 'floor', size: [4.0, 2.5, 2.0],  color: '#8a6f5c' },
-  computerDesk: { label: 'Desk + PC',   mount: 'floor', size: [5.5, 4.2, 2.2],  color: '#3a3632' },
-  cubeShelf:  { label: 'Cube shelf',    mount: 'floor', size: [3.6, 1.4, 1.2],  color: '#3d332c' },
+  computerDesk: { label: 'Desk + PC',   mount: 'floor', size: [4.2, 4.0, 1.9],  color: '#3a3632' },
+  cubeShelf:  { label: 'Cube shelf',    mount: 'floor', size: [5.0, 3.0, 1.3],  color: '#3d332c' },
   chair:      { label: 'Chair',         mount: 'floor', size: [1.6, 3.0, 1.6],  color: '#5c5750' },
   shelf:      { label: 'Bookshelf',     mount: 'floor', size: [2.6, 5.0, 1.1],  color: '#7a5c46' },
   rug:        { label: 'Rug',           mount: 'floor', size: [5.0, 0.1, 7.0],  color: '#9a5f4e' },
@@ -61,9 +61,9 @@ export const DEFAULT_ROOM = () => ({
   items: [
     // headboard against the left wall, so the foot of the bed points at the right wall
     makeItem('bed', { x: -3.375, z: -3.7, rotY: Math.PI / 2 }),
-    makeItem('cubeShelf', { x: -2.0, z: -0.6, rotY: 0 }),
-    // battlestation down the left wall, monitors facing the wall
-    makeItem('computerDesk', { x: -5.4, z: 1.5, rotY: Math.PI / 2 }),
+    // the shelf runs out from the left wall as a divider: bed behind it, desk in front
+    makeItem('cubeShelf', { x: -4.0, z: -0.65, rotY: 0 }),
+    makeItem('computerDesk', { x: -5.55, z: 2.4, rotY: Math.PI / 2 }),
     makeItem('window', { wall: 'north', along: 1.6 }),
     makeItem('awards', { wall: 'north', along: -3.2 }),
     makeItem('door', { wall: 'south', along: 4.5 }),
@@ -156,14 +156,17 @@ function buildComputerDesk(w, h, d, color) {
     color: '#16324a', roughness: 0.2, metalness: 0.3,
     emissive: '#1f4f74', emissiveIntensity: 0.9,
   });
+  // monitors scale with the desk so a narrower one doesn't overhang the edges
+  const mW = Math.min(1.9, w * 0.44);
+  const mOff = Math.min(1.05, w * 0.24);
   [-1, 1].forEach(s => {
     const m = new THREE.Group();
-    const bezel = box(1.9, 1.15, 0.07, '#1c1a19'); bezel.position.y = 0.9; m.add(bezel);
-    const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.74, 0.99), screenMat);
+    const bezel = box(mW, mW * 0.61, 0.07, '#1c1a19'); bezel.position.y = 0.9; m.add(bezel);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(mW * 0.92, mW * 0.52), screenMat);
     scr.position.set(0, 0.9, 0.045); m.add(scr);
     const stand = box(0.16, 0.55, 0.16, '#1c1a19'); stand.position.y = 0.3; m.add(stand);
-    const foot = box(0.8, 0.06, 0.5, '#1c1a19'); foot.position.y = 0.03; m.add(foot);
-    m.position.set(s * 1.05, deskH, -d / 2 + 0.6);
+    const foot = box(mW * 0.42, 0.06, 0.5, '#1c1a19'); foot.position.y = 0.03; m.add(foot);
+    m.position.set(s * mOff, deskH, -d / 2 + 0.6);
     m.rotation.y = -s * 0.2;
     g.add(m);
   });
@@ -177,16 +180,24 @@ function buildComputerDesk(w, h, d, color) {
   return g;
 }
 
-// cube organiser laid on its side next to the bed
+// cube organiser used as a divider; gains a second row of cubbies once it's tall
 function buildCubeShelf(w, h, d, color) {
   const g = new THREE.Group();
   const shell = box(w, h, d, color); shell.position.y = h / 2; g.add(shell);
-  const cubbies = 3;
-  const cw = (w - 0.36) / cubbies - 0.09;
-  for (let i = 0; i < cubbies; i++) {
-    const inner = box(cw, h - 0.34, 0.06, '#15120f');
-    inner.position.set(-w / 2 + 0.24 + cw / 2 + i * (cw + 0.09), h / 2, d / 2 + 0.006);
-    g.add(inner);
+  const rows = h > 2.2 ? 2 : 1;
+  const cols = Math.max(2, Math.round(w / 1.6));
+  const padX = 0.24, padY = 0.24, gap = 0.12;
+  const cw = (w - padX * 2 - gap * (cols - 1)) / cols;
+  const ch = (h - padY * 2 - gap * (rows - 1)) / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const inner = box(cw, ch, 0.06, '#15120f');
+      inner.position.set(
+        -w / 2 + padX + cw / 2 + c * (cw + gap),
+        padY + ch / 2 + r * (ch + gap),
+        d / 2 + 0.006);
+      g.add(inner);
+    }
   }
   return g;
 }
