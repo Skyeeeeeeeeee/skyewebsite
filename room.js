@@ -12,6 +12,8 @@ export const CATALOG = {
   nightstand: { label: 'Nightstand',    mount: 'floor', size: [1.6, 2.0, 1.4],  color: '#7a5c46' },
   dresser:    { label: 'Dresser',       mount: 'floor', size: [3.2, 3.0, 1.6],  color: '#7a5c46' },
   desk:       { label: 'Desk',          mount: 'floor', size: [4.0, 2.5, 2.0],  color: '#8a6f5c' },
+  computerDesk: { label: 'Desk + PC',   mount: 'floor', size: [5.5, 4.2, 2.2],  color: '#3a3632' },
+  cubeShelf:  { label: 'Cube shelf',    mount: 'floor', size: [3.6, 1.4, 1.2],  color: '#3d332c' },
   chair:      { label: 'Chair',         mount: 'floor', size: [1.6, 3.0, 1.6],  color: '#5c5750' },
   shelf:      { label: 'Bookshelf',     mount: 'floor', size: [2.6, 5.0, 1.1],  color: '#7a5c46' },
   rug:        { label: 'Rug',           mount: 'floor', size: [5.0, 0.1, 7.0],  color: '#9a5f4e' },
@@ -23,6 +25,7 @@ export const CATALOG = {
   mirror:     { label: 'Mirror',        mount: 'wall',  size: [2.0, 4.5, 0.16], color: '#8a6f5c', atY: 1.4 },
   tv:         { label: 'TV',            mount: 'wall',  size: [4.0, 2.3, 0.28], color: '#1e1e20', atY: 3.4 },
   poster:     { label: 'Poster',        mount: 'wall',  size: [2.0, 3.0, 0.08], color: '#c9976a', atY: 3.6 },
+  awards:     { label: 'Awards wall',   mount: 'wall',  size: [3.0, 2.8, 0.08], color: '#f2efe8', atY: 3.0 },
 };
 
 export const PALETTE = [
@@ -58,8 +61,11 @@ export const DEFAULT_ROOM = () => ({
   items: [
     // headboard against the left wall, so the foot of the bed points at the right wall
     makeItem('bed', { x: -3.375, z: -3.7, rotY: Math.PI / 2 }),
-    makeItem('nightstand', { x: -5.6, z: -0.5, rotY: 0 }),
+    makeItem('cubeShelf', { x: -2.0, z: -0.6, rotY: 0 }),
+    // battlestation down the left wall, monitors facing the wall
+    makeItem('computerDesk', { x: -5.4, z: 1.5, rotY: Math.PI / 2 }),
     makeItem('window', { wall: 'north', along: 1.6 }),
+    makeItem('awards', { wall: 'north', along: -3.2 }),
     makeItem('door', { wall: 'south', along: 4.5 }),
     makeItem('closet', { wall: 'south', along: 0 }),
     makeItem('rug', { x: 2.5, z: 0.5, rotY: 0 }),
@@ -131,6 +137,89 @@ function buildDesk(w, h, d, color) {
     leg.position.set(s * (w / 2 - 0.12), (h - 0.16) / 2, t * (d / 2 - 0.12));
     g.add(leg);
   }));
+  return g;
+}
+
+// the battlestation: long desk against the wall, two monitors, keyboard, tower
+function buildComputerDesk(w, h, d, color) {
+  const g = new THREE.Group();
+  const deskH = 2.4;
+  const top = box(w, 0.14, d, color);
+  top.position.y = deskH - 0.07; g.add(top);
+  [-1, 1].forEach(s => {
+    const side = box(0.16, deskH - 0.14, d - 0.2, color);
+    side.position.set(s * (w / 2 - 0.1), (deskH - 0.14) / 2, 0);
+    g.add(side);
+  });
+
+  const screenMat = new THREE.MeshStandardMaterial({
+    color: '#16324a', roughness: 0.2, metalness: 0.3,
+    emissive: '#1f4f74', emissiveIntensity: 0.9,
+  });
+  [-1, 1].forEach(s => {
+    const m = new THREE.Group();
+    const bezel = box(1.9, 1.15, 0.07, '#1c1a19'); bezel.position.y = 0.9; m.add(bezel);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.74, 0.99), screenMat);
+    scr.position.set(0, 0.9, 0.045); m.add(scr);
+    const stand = box(0.16, 0.55, 0.16, '#1c1a19'); stand.position.y = 0.3; m.add(stand);
+    const foot = box(0.8, 0.06, 0.5, '#1c1a19'); foot.position.y = 0.03; m.add(foot);
+    m.position.set(s * 1.05, deskH, -d / 2 + 0.6);
+    m.rotation.y = -s * 0.2;
+    g.add(m);
+  });
+
+  const kb = box(1.7, 0.07, 0.55, '#232022'); kb.position.set(-0.3, deskH + 0.04, 0.35); g.add(kb);
+  const mouse = box(0.28, 0.09, 0.42, '#232022'); mouse.position.set(0.95, deskH + 0.05, 0.35); g.add(mouse);
+
+  const tower = box(0.8, 1.6, 1.5, '#1c1a19'); tower.position.set(w / 2 - 0.75, 0.8, 0); g.add(tower);
+  const glow = box(0.07, 1.15, 0.07, '#c9976a', { emissive: '#c9976a', emissiveIntensity: 2.4 });
+  glow.position.set(w / 2 - 1.15, 0.8, 0.45); g.add(glow);
+  return g;
+}
+
+// cube organiser laid on its side next to the bed
+function buildCubeShelf(w, h, d, color) {
+  const g = new THREE.Group();
+  const shell = box(w, h, d, color); shell.position.y = h / 2; g.add(shell);
+  const cubbies = 3;
+  const cw = (w - 0.36) / cubbies - 0.09;
+  for (let i = 0; i < cubbies; i++) {
+    const inner = box(cw, h - 0.34, 0.06, '#15120f');
+    inner.position.set(-w / 2 + 0.24 + cw / 2 + i * (cw + 0.09), h / 2, d / 2 + 0.006);
+    g.add(inner);
+  }
+  return g;
+}
+
+// the wall by the window: calendar board, framed certificates, a couple of medals
+function buildAwards(w, h, d, color) {
+  const g = new THREE.Group();
+  const panel = (fx, fy, fw, fh, frameCol, faceCol) => {
+    const pw = w * fw, ph = h * fh;
+    const px = -w / 2 + w * fx, py = h * fy;
+    const frame = box(pw, ph, d, frameCol);
+    frame.position.set(px, py, 0); g.add(frame);
+    const face = box(pw - Math.min(0.13, pw * 0.2), ph - Math.min(0.13, ph * 0.2), d * 0.5, faceCol);
+    face.position.set(px, py, d * 0.55); g.add(face);
+  };
+
+  panel(0.27, 0.70, 0.46, 0.50, '#cfc7b8', color);
+  const banner = box(w * 0.42, h * 0.09, d * 0.6, '#2f4f7a');
+  banner.position.set(-w / 2 + w * 0.27, h * 0.87, d * 0.6); g.add(banner);
+
+  panel(0.66, 0.74, 0.24, 0.20, '#2a2724', '#efe7d6');
+  panel(0.66, 0.46, 0.24, 0.20, '#2a2724', '#efe7d6');
+  panel(0.87, 0.60, 0.20, 0.17, '#6b5a3a', '#efe7d6');
+
+  [0.44, 0.53].forEach((fx, i) => {
+    const rx = -w / 2 + w * fx;
+    const ribbon = box(0.08, h * 0.2, 0.04, i ? '#7a3b32' : '#2f4f7a');
+    ribbon.position.set(rx, h * 0.5, d * 0.7); g.add(ribbon);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.05, 18),
+      mat('#c9a227', { metalness: 0.85, roughness: 0.3 }));
+    disc.rotation.x = Math.PI / 2;
+    disc.position.set(rx, h * 0.37, d * 0.75); g.add(disc);
+  });
   return g;
 }
 
@@ -262,6 +351,17 @@ function buildWindow(w, h, d, color) {
   const bar = box(0.1, h, 0.06, color); bar.position.set(0, h / 2, d / 2 + 0.03); g.add(bar);
   const bar2 = box(w, 0.1, 0.06, color); bar2.position.set(0, h / 2, d / 2 + 0.03); g.add(bar2);
   const sill = box(w + 0.6, 0.16, d + 0.4, color); sill.position.set(0, -0.08, 0.1); g.add(sill);
+
+  // blackout panels drawn back to the sides, leaving the middle clear
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, w + 1.1, 10),
+    mat('#2a2724', { metalness: 0.6, roughness: 0.4 }));
+  rod.rotation.z = Math.PI / 2;
+  rod.position.set(0, h + 0.62, d / 2 + 0.16); g.add(rod);
+  [-1, 1].forEach(s => {
+    const panel = box(w * 0.34, h + 0.95, 0.11, '#1c1a19', { roughness: 0.95 });
+    panel.position.set(s * (w / 2 - w * 0.15), h / 2 + 0.12, d / 2 + 0.16);
+    g.add(panel);
+  });
   return g;
 }
 
@@ -300,6 +400,9 @@ function buildItemMesh(item) {
     case 'nightstand': return buildNightstand(w, h, d, c);
     case 'dresser': return buildDresser(w, h, d, c);
     case 'desk': return buildDesk(w, h, d, c);
+    case 'computerDesk': return buildComputerDesk(w, h, d, c);
+    case 'cubeShelf': return buildCubeShelf(w, h, d, c);
+    case 'awards': return buildAwards(w, h, d, c);
     case 'chair': return buildChair(w, h, d, c);
     case 'shelf': return buildShelf(w, h, d, c);
     case 'rug': return buildRug(w, h, d, c);
