@@ -12,8 +12,8 @@ export const CATALOG = {
   nightstand: { label: 'Nightstand',    mount: 'floor', size: [1.6, 2.0, 1.4],  color: '#7a5c46' },
   dresser:    { label: 'Dresser',       mount: 'floor', size: [3.2, 3.0, 1.6],  color: '#7a5c46' },
   desk:       { label: 'Desk',          mount: 'floor', size: [4.0, 2.5, 2.0],  color: '#8a6f5c' },
-  computerDesk: { label: 'Desk + PC',   mount: 'floor', size: [4.2, 4.0, 1.9],  color: '#3a3632' },
-  cubeShelf:  { label: 'Cube shelf',    mount: 'floor', size: [5.0, 3.0, 1.3],  color: '#3d332c' },
+  computerDesk: { label: 'Desk + PC',   mount: 'floor', size: [4.2, 4.0, 1.9],  color: '#4a3527' },
+  cubeShelf:  { label: 'Cube shelf',    mount: 'floor', size: [6.8, 3.0, 1.3],  color: '#3d332c' },
   chair:      { label: 'Chair',         mount: 'floor', size: [1.6, 3.0, 1.6],  color: '#5c5750' },
   shelf:      { label: 'Bookshelf',     mount: 'floor', size: [2.6, 5.0, 1.1],  color: '#7a5c46' },
   rug:        { label: 'Rug',           mount: 'floor', size: [5.0, 0.1, 7.0],  color: '#9a5f4e' },
@@ -61,14 +61,14 @@ export const DEFAULT_ROOM = () => ({
   items: [
     // headboard against the left wall, so the foot of the bed points at the right wall
     makeItem('bed', { x: -3.375, z: -3.7, rotY: Math.PI / 2 }),
-    // the shelf runs out from the left wall as a divider: bed behind it, desk in front
-    makeItem('cubeShelf', { x: -4.0, z: -0.65, rotY: 0 }),
+    // the shelf runs out from the left wall as a divider: bed behind it, desk in
+    // front, and it reaches just past the foot of the bed
+    makeItem('cubeShelf', { x: -3.1, z: -0.65, rotY: 0 }),
     makeItem('computerDesk', { x: -5.55, z: 2.4, rotY: Math.PI / 2 }),
     makeItem('window', { wall: 'north', along: 1.6 }),
     makeItem('awards', { wall: 'north', along: -3.2 }),
     makeItem('door', { wall: 'south', along: 4.5 }),
     makeItem('closet', { wall: 'south', along: 0 }),
-    makeItem('rug', { x: 2.5, z: 0.5, rotY: 0 }),
   ],
 });
 
@@ -94,11 +94,11 @@ const MIRROR_MAT = () => new THREE.MeshStandardMaterial({ color: '#dfe9ef', roug
 function buildBed(w, h, d, color) {
   const g = new THREE.Group();
   const frame = box(w, 0.75, d, color); frame.position.y = 0.375; g.add(frame);
-  const mattress = box(w - 0.22, 0.7, d - 0.3, '#f3efe6'); mattress.position.set(0, 1.1, 0.1); g.add(mattress);
+  const mattress = box(w - 0.22, 0.7, d - 0.3, '#9c9b99'); mattress.position.set(0, 1.1, 0.1); g.add(mattress);
   const head = box(w, 2.3, 0.22, color); head.position.set(0, 1.15, -d / 2 + 0.11); g.add(head);
-  const blanket = box(w - 0.16, 0.22, d * 0.6, '#8a5a3b'); blanket.position.set(0, 1.53, d / 2 - d * 0.3 - 0.15); g.add(blanket);
+  const blanket = box(w - 0.16, 0.22, d * 0.6, '#6d6c6a'); blanket.position.set(0, 1.53, d / 2 - d * 0.3 - 0.15); g.add(blanket);
   [-1, 1].forEach(s => {
-    const p = box(w / 2 - 0.4, 0.34, 1.1, '#ffffff');
+    const p = box(w / 2 - 0.4, 0.34, 1.1, '#c9c8c5');
     p.position.set(s * (w / 4), 1.62, -d / 2 + 0.95);
     g.add(p);
   });
