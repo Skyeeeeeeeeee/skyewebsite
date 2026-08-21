@@ -57,7 +57,7 @@ export function makeItem(type, patch = {}) {
 export const DEFAULT_ROOM = () => ({
   dims: { w: 13, d: 12, h: 8 },
   wallColor: '#f4f1ec',
-  floorColor: '#b6a894',
+  floorColor: '#ab9678',
   items: [
     // headboard against the left wall, so the foot of the bed points at the right wall
     makeItem('bed', { x: -3.375, z: -3.7, rotY: Math.PI / 2 }),
@@ -499,7 +499,7 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
 
   // room shell
   const carpetTex = makeCarpetTexture();
-  const floorMat = new THREE.MeshStandardMaterial({ color: '#b6a894', map: carpetTex, roughness: 1 });
+  const floorMat = new THREE.MeshStandardMaterial({ color: '#ab9678', map: carpetTex, roughness: 1 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -837,7 +837,7 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
     state = {
       dims: { ...DEFAULT_ROOM().dims, ...(next && next.dims) },
       wallColor: (next && next.wallColor) || '#f4f1ec',
-      floorColor: (next && next.floorColor) || '#b6a894',
+      floorColor: (next && next.floorColor) || '#ab9678',
       items: ((next && next.items) || []).filter(i => i && CATALOG[i.type]),
     };
     if (selectedId && !findItem(selectedId)) select(null);
