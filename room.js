@@ -19,8 +19,9 @@ export const CATALOG = {
   rug:        { label: 'Rug',           mount: 'floor', size: [5.0, 0.1, 7.0],  color: '#9a5f4e' },
   plant:      { label: 'Plant',         mount: 'floor', size: [1.6, 4.0, 1.6],  color: '#5a7a4a' },
   lamp:       { label: 'Floor lamp',    mount: 'floor', size: [1.2, 5.0, 1.2],  color: '#e0d6c4' },
-  closet:     { label: 'Closet mirror', mount: 'wall',  size: [5.0, 7.0, 1.8],  color: '#efece6', atY: 0 },
-  door:       { label: 'Door',          mount: 'wall',  size: [3.0, 6.75, 0.35], color: '#efece6', atY: 0 },
+  // recess: built into the wall rather than standing proud of it
+  closet:     { label: 'Closet mirror', mount: 'wall',  size: [5.0, 7.0, 1.8],  color: '#efece6', atY: 0, recess: true },
+  door:       { label: 'Door',          mount: 'wall',  size: [3.0, 6.75, 1.8], color: '#efece6', atY: 0, recess: true },
   window:     { label: 'Window',        mount: 'wall',  size: [6.0, 4.0, 0.3],  color: '#efece6', atY: 2.4 },
   mirror:     { label: 'Mirror',        mount: 'wall',  size: [2.0, 4.5, 0.16], color: '#8a6f5c', atY: 1.4 },
   tv:         { label: 'TV',            mount: 'wall',  size: [4.0, 2.3, 0.28], color: '#1e1e20', atY: 3.4 },
@@ -320,33 +321,48 @@ function buildLamp(w, h, color) {
 function buildCloset(w, h, d, color) {
   const g = new THREE.Group();
   const body = box(w, h, d, color); body.position.y = h / 2; g.add(body);
+  // four mirrored doors, evenly divided across the opening
+  const panels = 4, edge = 0.16, gapW = 0.08;
+  const panelW = (w - edge * 2 - gapW * (panels - 1)) / panels;
   const mirrorMat = MIRROR_MAT();
-  const panelW = w / 2 - 0.24;
-  [-1, 1].forEach(s => {
+  for (let i = 0; i < panels; i++) {
+    const x = -w / 2 + edge + panelW / 2 + i * (panelW + gapW);
     const p = new THREE.Mesh(new THREE.PlaneGeometry(panelW, h - 0.5), mirrorMat);
-    p.position.set(s * (w / 4), h / 2, d / 2 + 0.012);
+    p.position.set(x, h / 2, d / 2 + 0.012);
     g.add(p);
-  });
-  const split = box(0.09, h - 0.3, 0.05, '#cfc7ba');
-  split.position.set(0, h / 2, d / 2 + 0.02); g.add(split);
+    if (i < panels - 1) {
+      const split = box(gapW, h - 0.3, 0.05, '#cfc7ba');
+      split.position.set(x + panelW / 2 + gapW / 2, h / 2, d / 2 + 0.02);
+      g.add(split);
+    }
+  }
   return g;
 }
 
+// the opening is as deep as the wall it's set into, so the jamb lines the reveal
+// and the slab hangs near the room-facing edge instead of filling the depth
 function buildDoor(w, h, d, color) {
   const g = new THREE.Group();
-  const casing = box(w + 0.34, h + 0.17, d, color);
-  casing.position.y = (h + 0.17) / 2; g.add(casing);
-  const slab = box(w, h, d * 0.55, '#ffffff');
-  slab.material.color.set(color).offsetHSL(0, 0, -0.04);
-  slab.position.set(0, h / 2, d * 0.3); g.add(slab);
-  [0.28, 0.68].forEach(f => {
-    const panel = box(w - 0.7, h * 0.3, 0.04, '#ffffff');
-    panel.material.color.set(color).offsetHSL(0, 0, -0.1);
-    panel.position.set(0, h * f, d * 0.58);
-    g.add(panel);
+  const jamb = 0.12;
+  [-1, 1].forEach(s => {
+    const side = box(jamb, h, d, color);
+    side.position.set(s * (w / 2 - jamb / 2), h / 2, 0); g.add(side);
+  });
+  const head = box(w, jamb, d, color);
+  head.position.set(0, h - jamb / 2, 0); g.add(head);
+
+  const slabT = 0.16;
+  const slabZ = d / 2 - slabT / 2 - 0.05;
+  const slab = box(w - jamb * 2, h - jamb, slabT, '#ffffff');
+  slab.material.color.set(color).offsetHSL(0, 0, -0.05);
+  slab.position.set(0, (h - jamb) / 2, slabZ); g.add(slab);
+  [0.28, 0.66].forEach(f => {
+    const panel = box(w - 0.8, h * 0.28, 0.04, '#ffffff');
+    panel.material.color.set(color).offsetHSL(0, 0, -0.12);
+    panel.position.set(0, h * f, slabZ + slabT / 2); g.add(panel);
   });
   const knob = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), mat('#c9a227', { metalness: 0.9, roughness: 0.25 }));
-  knob.position.set(w / 2 - 0.32, h * 0.45, d * 0.62); g.add(knob);
+  knob.position.set(w / 2 - 0.42, h * 0.45, slabZ + slabT / 2 + 0.08); g.add(knob);
   return g;
 }
 
@@ -562,6 +578,59 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
   }
 
   /* ---- geometry from state ---- */
+  /* Recessed pieces (built-in closet, doorway) sit behind the wall plane, so the
+     wall is built as a shape with a matching opening cut out of it rather than a
+     plain plane. Openings are inset a hair so the wall laps the piece's edges. */
+  function wallOpenings(name, gw, gh) {
+    const out = [];
+    state.items.forEach(item => {
+      const spec = CATALOG[item.type];
+      if (!spec || !spec.recess || spec.mount !== 'wall' || item.wall !== name) return;
+      const s = item.scale || 1;
+      const iw = spec.size[0] * s, ih = spec.size[1] * s;
+      const along = clamp(item.along ?? 0, -gw / 2 + iw / 2, gw / 2 - iw / 2);
+      // the wall's local +x runs opposite world on the south and west faces
+      const lx = (name === 'south' || name === 'west') ? -along : along;
+      const y0 = (spec.atY || 0) - gh / 2;
+      out.push({ x0: lx - iw / 2 + 0.02, x1: lx + iw / 2 - 0.02, y0: y0 + 0.02, y1: y0 + ih - 0.02 });
+    });
+    return out;
+  }
+
+  function wallGeometry(gw, gh, openings) {
+    if (!openings.length) return new THREE.PlaneGeometry(gw, gh);
+    const shape = new THREE.Shape();
+    shape.moveTo(-gw / 2, -gh / 2);
+    shape.lineTo(gw / 2, -gh / 2);
+    shape.lineTo(gw / 2, gh / 2);
+    shape.lineTo(-gw / 2, gh / 2);
+    shape.closePath();
+    openings.forEach(o => {
+      const p = new THREE.Path();
+      p.moveTo(o.x0, o.y0);
+      p.lineTo(o.x1, o.y0);
+      p.lineTo(o.x1, o.y1);
+      p.lineTo(o.x0, o.y1);
+      p.closePath();
+      shape.holes.push(p);
+    });
+    return new THREE.ShapeGeometry(shape);
+  }
+
+  function rebuildWalls() {
+    const { w, d, h } = state.dims;
+    const place = (m, name, gw, gh, pos, rotY) => {
+      m.geometry.dispose();
+      m.geometry = wallGeometry(gw, gh, wallOpenings(name, gw, gh));
+      m.position.set(pos[0], h / 2, pos[2]);
+      m.rotation.y = rotY;
+    };
+    place(wallMeshes.north, 'north', w, h, [0, 0, -d / 2], 0);
+    place(wallMeshes.south, 'south', w, h, [0, 0, d / 2], Math.PI);
+    place(wallMeshes.west, 'west', d, h, [-w / 2, 0, 0], Math.PI / 2);
+    place(wallMeshes.east, 'east', d, h, [w / 2, 0, 0], -Math.PI / 2);
+  }
+
   function rebuildShell() {
     const { w, d, h } = state.dims;
     floor.geometry.dispose();
@@ -570,16 +639,7 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
     floorMat.color.set(state.floorColor);
     wallMat.color.set(state.wallColor);
 
-    const place = (m, gw, gh, pos, rotY) => {
-      m.geometry.dispose();
-      m.geometry = new THREE.PlaneGeometry(gw, gh);
-      m.position.set(pos[0], h / 2, pos[2]);
-      m.rotation.y = rotY;
-    };
-    place(wallMeshes.north, w, h, [0, 0, -d / 2], 0);
-    place(wallMeshes.south, w, h, [0, 0, d / 2], Math.PI);
-    place(wallMeshes.west, d, h, [-w / 2, 0, 0], Math.PI / 2);
-    place(wallMeshes.east, d, h, [w / 2, 0, 0], -Math.PI / 2);
+    rebuildWalls();
 
     const span = Math.max(w, d);
     sun.position.set(w * 0.55, h * 2.4, -d * 0.75);
@@ -600,10 +660,12 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
       const halfSpan = (item.wall === 'north' || item.wall === 'south') ? w / 2 : d / 2;
       const along = clamp(item.along ?? 0, -halfSpan + iw / 2, halfSpan - iw / 2);
       const y = spec.atY || 0;
-      if (item.wall === 'north') { group.position.set(along, y, -d / 2 + idp / 2); group.rotation.y = 0; }
-      else if (item.wall === 'south') { group.position.set(along, y, d / 2 - idp / 2); group.rotation.y = Math.PI; }
-      else if (item.wall === 'west') { group.position.set(-w / 2 + idp / 2, y, along); group.rotation.y = Math.PI / 2; }
-      else { group.position.set(w / 2 - idp / 2, y, along); group.rotation.y = -Math.PI / 2; }
+      // recessed pieces sit behind the wall plane, so the offset flips outward
+      const off = spec.recess ? -idp / 2 : idp / 2;
+      if (item.wall === 'north') { group.position.set(along, y, -d / 2 + off); group.rotation.y = 0; }
+      else if (item.wall === 'south') { group.position.set(along, y, d / 2 - off); group.rotation.y = Math.PI; }
+      else if (item.wall === 'west') { group.position.set(-w / 2 + off, y, along); group.rotation.y = Math.PI / 2; }
+      else { group.position.set(w / 2 - off, y, along); group.rotation.y = -Math.PI / 2; }
     } else {
       const r = Math.abs(item.rotY || 0) % Math.PI;
       const swap = r > Math.PI * 0.25 && r < Math.PI * 0.75;
@@ -641,6 +703,7 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
       scene.remove(rec.group);
       objects.delete(id);
     });
+    rebuildWalls(); // openings follow whatever is recessed right now
     refreshSelectionBox();
   }
 
@@ -750,6 +813,7 @@ export function createRoomScene({ canvas, onSelect, onChange }) {
       ].sort((a, b) => a.dist - b.dist)[0];
       item.wall = cand.wall;
       item.along = cand.along;
+      if (spec.recess) rebuildWalls(); // drag the opening along with it
     } else {
       item.x = p.x + dragOffset.x;
       item.z = p.z + dragOffset.z;
