@@ -71,6 +71,14 @@
       <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M4.3 17.3 9 12.3l3.1 3.1L15 12l4.7 5.3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
       <span>Decor</span>
     </button>
+    <button class="tab" data-view="jazz">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6.2l10-2v11.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="6.8" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><circle cx="16.8" cy="15.8" r="2.6" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Jazz</span>
+    </button>
+    <button class="tab" data-view="titles">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 11h16M4 16h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M15.5 19.5l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Titles</span>
+    </button>
     <button class="tab" data-view="room">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.8 21 7v10l-9 4.2L3 17V7l9-4.2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 7l9 4.2L21 7M12 11.2V21.2" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <span>Room</span>
@@ -250,6 +258,24 @@
       <div class="empty-icon">✦</div>
       <p>No decor saved yet</p>
     </div>
+  </section>
+
+  <!-- JAZZ PROMPTS -->
+  <section class="view" id="view-jazz">
+    <div class="view-head">
+      <h1>Jazz Prompts</h1>
+      <p>TofuBro · Suno working set. Ten prompts covering the moods a 24/7 jazz channel needs, plus the settings that keep output consistent.</p>
+    </div>
+    <div class="channel-body" id="jazzBody"></div>
+  </section>
+
+  <!-- SHORTS TITLES -->
+  <section class="view" id="view-titles">
+    <div class="view-head">
+      <h1>Shorts Titles</h1>
+      <p>Bouncing Tofu · Shorts metadata. Titles that aren't the five you've been rotating, plus the tag sets to paste and the ones to stop pasting.</p>
+    </div>
+    <div class="channel-body" id="titlesBody"></div>
   </section>
 
   <!-- ROOM (3D visualiser) -->

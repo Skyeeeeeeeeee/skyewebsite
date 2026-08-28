@@ -1,4 +1,5 @@
 import { firebaseConfig, useEmulators } from './firebase-config.js';
+import { renderJazz, renderTitles } from './channel.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getAuth, connectAuthEmulator, onAuthStateChanged,
@@ -849,7 +850,11 @@ window.addEventListener('resize', () => {
   if (sceneRunning) resizeScene();
 });
 
-const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'room', 'home'];
+/* ---------------- channel reference tabs (static content, rendered once) ---------------- */
+renderJazz(document.getElementById('jazzBody'));
+renderTitles(document.getElementById('titlesBody'));
+
+const validViews = ['notes', 'events', 'memories', 'wishlist', 'links', 'decor', 'jazz', 'titles', 'room', 'home'];
 const initialView = (location.hash || '').replace('#', '');
 activateTab(validViews.includes(initialView) ? initialView : 'notes', { skipHash: true });
 requestAnimationFrame(() => {
